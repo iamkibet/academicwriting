@@ -1,0 +1,233 @@
+---
+alwaysApply: true
+---
+# Laravel Backend Standards
+
+## Controller Patterns
+
+### Resource Controllers
+```php
+// ✅ CORRECT: Use resource controllers
+class PaperController extends Controller
+{
+    public function index(): Response
+    {
+        $papers = Paper::with(['user', 'category'])
+            ->paginate(15);
+            
+        return inertia('papers/index', [
+            'papers' => $papers,
+        ]);
+    }
+    
+    public function store(StorePaperRequest $request): RedirectResponse
+    {
+        $paper = auth()->user()->papers()->create($request->validated());
+        
+        return redirect()->route('papers.show', $paper)
+            ->with('success', 'Paper created successfully.');
+    }
+}
+```
+
+### Request Validation
+```php
+// ✅ CORRECT: Use Form Request classes
+class StorePaperRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'title' => ['required', 'string', 'max:255'],
+            'abstract' => ['required', 'string', 'max:1000'],
+            'content' => ['required', 'string'],
+            'category_id' => ['required', 'exists:categories,id'],
+        ];
+    }
+    
+    public function messages(): array
+    {
+        return [
+            'title.required' => 'The paper title is required.',
+            'category_id.exists' => 'The selected category is invalid.',
+        ];
+    }
+}
+```
+
+## Model Patterns
+
+### Eloquent Models
+```php
+// ✅ CORRECT: Model with relationships and scopes
+class Paper extends Model
+{
+    protected $fillable = [
+        'title',
+        'abstract', 
+        'content',
+        'status',
+        'category_id',
+    ];
+    
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'published_at' => 'datetime',
+    ];
+    
+    // Relationships
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+    
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+    
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+    
+    // Scopes
+    public function scopePublished($query)
+    {
+        return $query->where('status', 'published');
+    }
+    
+    public function scopeByCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+}
+```
+
+## Database Patterns
+
+### Migrations
+```php
+// ✅ CORRECT: Migration with proper structure
+public function up(): void
+{
+    Schema::create('papers', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+        $table->foreignId('category_id')->constrained()->restrictOnDelete();
+        $table->string('title');
+        $table->text('abstract');
+        $table->longText('content');
+        $table->enum('status', ['draft', 'review', 'published'])->default('draft');
+        $table->timestamp('published_at')->nullable();
+        $table->timestamps();
+        
+        $table->index(['status', 'published_at']);
+        $table->index(['user_id', 'status']);
+    });
+}
+```
+
+### Seeders
+```php
+// ✅ CORRECT: Seeder with proper data
+class CategorySeeder extends Seeder
+{
+    public function run(): void
+    {
+        $categories = [
+            ['name' => 'Computer Science', 'slug' => 'computer-science'],
+            ['name' => 'Mathematics', 'slug' => 'mathematics'],
+            ['name' => 'Physics', 'slug' => 'physics'],
+        ];
+        
+        foreach ($categories as $category) {
+            Category::create($category);
+        }
+    }
+}
+```
+
+## Route Patterns
+
+### Web Routes
+```php
+// ✅ CORRECT: Organized route structure
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    
+    Route::resource('papers', PaperController::class);
+    Route::resource('categories', CategoryController::class)->except(['show']);
+    
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('profile', [ProfileController::class, 'edit'])->name('profile');
+        Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+    });
+});
+```
+
+## Service Patterns
+
+### Service Classes
+```php
+// ✅ CORRECT: Service class for business logic
+class PaperService
+{
+    public function createPaper(array $data, User $user): Paper
+    {
+        return DB::transaction(function () use ($data, $user) {
+            $paper = $user->papers()->create($data);
+            
+            // Send notification
+            $user->notify(new PaperCreatedNotification($paper));
+            
+            return $paper;
+        });
+    }
+    
+    public function publishPaper(Paper $paper): Paper
+    {
+        $paper->update([
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+        
+        return $paper;
+    }
+}
+```
+
+## API Responses
+
+### Inertia Responses
+```php
+// ✅ CORRECT: Inertia response with proper data
+return inertia('papers/show', [
+    'paper' => $paper->load(['user', 'category', 'comments.user']),
+    'canEdit' => Gate::allows('update', $paper),
+    'canDelete' => Gate::allows('delete', $paper),
+]);
+```
+
+### JSON Responses
+```php
+// ✅ CORRECT: API response structure
+return response()->json([
+    'data' => $paper,
+    'message' => 'Paper created successfully',
+    'status' => 'success',
+], 201);
+```
+
+## Laravel Standards Checklist
+- [ ] Uses Form Request classes for validation
+- [ ] Implements proper relationships in models
+- [ ] Uses database transactions for complex operations
+- [ ] Follows RESTful route conventions
+- [ ] Includes proper error handling
+- [ ] Uses Eloquent scopes for query optimization
+- [ ] Implements proper authorization with Gates/Policies
+- [ ] Uses service classes for business logic
+- [ ] Includes proper database indexes
+- [ ] Follows PSR-12 coding standards

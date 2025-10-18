@@ -1,0 +1,90 @@
+---
+description: TypeScript standards and type safety requirements
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+
+# TypeScript Standards
+
+## Type Safety Requirements
+
+### Interface Patterns
+```typescript
+// ✅ CORRECT: Extend React.ComponentProps for HTML elements
+interface MyComponentProps extends React.ComponentProps<"div"> {
+  variant?: 'default' | 'secondary';
+  children: React.ReactNode;
+}
+
+// ✅ CORRECT: Use proper type exports
+export { MyComponent, myComponentVariants };
+export type { MyComponentProps };
+```
+
+### Import/Export Standards
+```typescript
+// 1. React imports
+import React from 'react';
+
+// 2. External library imports
+import { Link } from '@inertiajs/react';
+import { LucideIcon } from 'lucide-react';
+
+// 3. Internal UI components
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+
+// 4. Internal feature components
+import { UserInfo } from '@/components/user-info';
+
+// 5. Hooks and utilities
+import { useAppearance } from '@/hooks/use-appearance';
+import { cn } from '@/lib/utils';
+
+// 6. Types
+import { type User } from '@/types';
+```
+
+### Component Props Patterns
+```typescript
+// ✅ CORRECT: Use React.ComponentProps
+function MyComponent({ className, ...props }: React.ComponentProps<"div">) {
+  return <div className={cn("base-styles", className)} {...props} />;
+}
+
+// ✅ CORRECT: Use VariantProps with cva
+interface ButtonProps extends React.ComponentProps<"button">, VariantProps<typeof buttonVariants> {
+  asChild?: boolean;
+}
+```
+
+### Type Definitions
+```typescript
+// ✅ CORRECT: Use proper type definitions
+export type Appearance = 'light' | 'dark' | 'system';
+
+// ✅ CORRECT: Use const assertions for readonly data
+export const NAV_ITEMS = [
+  { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
+] as const;
+
+// ✅ CORRECT: Use proper generic constraints
+function useApi<T extends Record<string, any>>(url: string): Promise<T> {
+  // implementation
+}
+```
+
+## File Organization
+- **Types**: `@/types/` directory for shared type definitions
+- **Component Types**: Export from component files
+- **Hook Types**: Export from hook files
+- **Page Types**: Use Inertia.js shared data types
+
+## Type Safety Checklist
+- [ ] All props are properly typed
+- [ ] Component props extend appropriate React types
+- [ ] Variant props use VariantProps
+- [ ] Export both component and types
+- [ ] Use proper generic constraints
+- [ ] Avoid `any` type usage
+- [ ] Use const assertions for immutable data

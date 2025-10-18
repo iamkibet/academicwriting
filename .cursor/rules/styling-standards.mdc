@@ -1,0 +1,107 @@
+---
+description: Styling standards and design system integration
+globs: ["**/*.tsx", "**/*.ts", "resources/css/**/*.css"]
+alwaysApply: false
+---
+
+# Styling Standards
+
+## Design System Integration
+
+### Color System
+```typescript
+// ✅ CORRECT: Use CSS variables for colors
+bg-primary, text-primary-foreground
+bg-secondary, text-secondary-foreground
+bg-muted, text-muted-foreground
+bg-accent, text-accent-foreground
+bg-destructive, text-destructive-foreground
+border-input, ring-ring
+
+// Sidebar colors
+bg-sidebar, text-sidebar-foreground
+bg-sidebar-accent, text-sidebar-accent-foreground
+border-sidebar-border
+```
+
+### Spacing System
+```typescript
+// ✅ CORRECT: Use consistent spacing patterns
+gap-4, px-6, py-4, rounded-xl
+gap-6, px-8, py-6, rounded-lg
+gap-2, px-3, py-2, rounded-md
+```
+
+### Typography
+```typescript
+// ✅ CORRECT: Use consistent typography
+text-sm, font-medium, leading-none
+text-base, font-semibold, leading-normal
+text-lg, font-bold, leading-tight
+```
+
+## Component Styling Patterns
+
+### Required Styling Elements
+```typescript
+// ✅ CORRECT: Always include these patterns
+className={cn(
+  "base-styles",
+  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+  "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+  "aria-invalid:border-destructive",
+  className
+)}
+```
+
+### Dark Mode Support
+```typescript
+// ✅ CORRECT: Always include dark mode variants
+"bg-background text-foreground dark:bg-background dark:text-foreground"
+"border-border dark:border-border"
+"shadow-sm dark:shadow-sm"
+```
+
+### Responsive Design
+```typescript
+// ✅ CORRECT: Use responsive utilities
+"flex flex-col md:flex-row"
+"w-full md:w-auto"
+"text-sm md:text-base"
+```
+
+## Animation & Transitions
+```typescript
+// ✅ CORRECT: Use consistent transitions
+transition-shadow
+transition-[color,box-shadow]
+transition-all duration-200
+```
+
+## Shadow System
+```typescript
+// ✅ CORRECT: Use consistent shadows
+shadow-xs
+shadow-sm
+shadow-md
+```
+
+## Accessibility Styling
+```typescript
+// ✅ CORRECT: Focus and validation styles
+"focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+"aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
+"aria-invalid:border-destructive"
+"disabled:pointer-events-none disabled:opacity-50"
+```
+
+## Styling Checklist
+- [ ] Uses CSS variables for colors
+- [ ] Includes dark mode variants
+- [ ] Uses consistent spacing patterns
+- [ ] Includes focus-visible styles
+- [ ] Includes aria-invalid styles
+- [ ] Uses responsive design patterns
+- [ ] Includes proper transitions
+- [ ] Uses consistent shadows
+- [ ] Follows typography scale

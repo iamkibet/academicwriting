@@ -1,0 +1,137 @@
+---
+description: Project overview and architecture patterns
+globs: []
+alwaysApply: true
+---
+
+# Academic Writing Platform - Project Overview
+
+## 🏗️ Architecture
+
+This is a **Laravel + React + Inertia.js** application with **shadcn/ui** components for academic writing management.
+
+### Technology Stack
+- **Backend**: Laravel 12.x with Fortify authentication
+- **Frontend**: React 19 + TypeScript + Inertia.js
+- **UI**: shadcn/ui (New York style) + Tailwind CSS 4.0
+- **Database**: SQLite
+- **Testing**: Pest
+- **Icons**: Lucide React
+
+### Key Features
+- User authentication with 2FA support
+- Dark/light theme system
+- Responsive sidebar layout
+- Type-safe routing with Wayfinder
+- Component-based architecture
+
+## 📁 Project Structure
+
+### Frontend (`resources/js/`)
+```
+components/
+├── ui/              # shadcn/ui components
+├── app-*.tsx        # App-specific components
+├── nav-*.tsx        # Navigation components
+└── *-error.tsx      # Error handling components
+
+hooks/               # Custom React hooks
+layouts/             # Layout templates
+pages/               # Inertia.js pages
+types/               # TypeScript definitions
+routes/              # Generated route definitions
+```
+
+### Backend (`app/`)
+```
+Http/Controllers/    # Feature-grouped controllers
+Models/             # Eloquent models
+Providers/          # Service providers
+```
+
+## 🎯 Core Patterns
+
+### Component Architecture
+- **shadcn/ui** for consistent UI components
+- **cva** (Class Variance Authority) for component variants
+- **cn()** utility for className merging
+- **data-slot** attributes for component identification
+
+### State Management
+- **Inertia.js** for page state
+- **React hooks** for component state
+- **Laravel shared data** for global state
+
+### Routing
+- **Wayfinder** for type-safe route generation
+- **Inertia.js** for SPA-like navigation
+- **Laravel routes** with middleware protection
+
+### Styling
+- **Tailwind CSS 4.0** with custom CSS variables
+- **Dark mode** support via CSS classes
+- **Responsive design** patterns
+- **Consistent spacing** and typography
+
+## 🔧 Development Workflow
+
+### Component Development
+1. **Audit existing components** before creating new ones
+2. **Extend existing components** when possible
+3. **Use established patterns** for consistency
+4. **Follow TypeScript standards** for type safety
+
+### Code Quality
+- **ESLint + Prettier** for code formatting
+- **TypeScript** for type safety
+- **Pest** for PHP testing
+- **Accessibility** standards compliance
+
+### Available Commands
+```bash
+npm run dev          # Development server
+npm run build        # Production build
+npm run format       # Code formatting
+npm run lint         # ESLint checking
+php artisan test     # Run tests
+```
+
+## 🎨 Design System
+
+### Color Palette
+- **Primary**: `bg-primary`, `text-primary-foreground`
+- **Secondary**: `bg-secondary`, `text-secondary-foreground`
+- **Muted**: `bg-muted`, `text-muted-foreground`
+- **Destructive**: `bg-destructive`, `text-destructive-foreground`
+
+### Spacing Scale
+- **Small**: `gap-2`, `px-3`, `py-2`
+- **Medium**: `gap-4`, `px-6`, `py-4`
+- **Large**: `gap-6`, `px-8`, `py-6`
+
+### Typography
+- **Small**: `text-sm`, `font-medium`
+- **Base**: `text-base`, `font-semibold`
+- **Large**: `text-lg`, `font-bold`
+
+## 🚀 Key Components
+
+### Layout Components
+- `AppShell` - Main layout wrapper
+- `AppSidebar` - Collapsible sidebar navigation
+- `AppHeader` - Top navigation bar
+- `AppContent` - Main content area
+
+### UI Components
+- All shadcn/ui components (Button, Card, Input, etc.)
+- Custom components (UserInfo, AlertError, Icon)
+- Form components with validation
+- Modal and dialog components
+
+### Utility Hooks
+- `useAppearance` - Theme management
+- `useIsMobile` - Responsive breakpoints
+- `useClipboard` - Copy functionality
+- `useInitials` - Name initials generation
+
+This project follows modern web development best practices with a focus on maintainability, accessibility, and developer experience.

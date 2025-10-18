@@ -1,0 +1,142 @@
+---
+description: Accessibility standards and ARIA requirements
+globs: ["**/*.tsx", "**/*.ts"]
+alwaysApply: false
+---
+
+# Accessibility Standards
+
+## Required ARIA Attributes
+
+### Form Components
+```typescript
+// ✅ CORRECT: Form validation
+<input
+  aria-invalid={hasError}
+  aria-describedby={hasError ? `${id}-error` : undefined}
+  {...props}
+/>
+
+// ✅ CORRECT: Labels and descriptions
+<label htmlFor={id}>{label}</label>
+<input id={id} {...props} />
+{error && <div id={`${id}-error`} role="alert">{error}</div>}
+```
+
+### Interactive Components
+```typescript
+// ✅ CORRECT: Button with accessible label
+<button aria-label="Close dialog" {...props}>
+  <Icon iconNode={XIcon} />
+</button>
+
+// ✅ CORRECT: Toggle button
+<button
+  aria-pressed={isPressed}
+  aria-expanded={isExpanded}
+  {...props}
+>
+  {children}
+</button>
+```
+
+### Navigation Components
+```typescript
+// ✅ CORRECT: Navigation with proper roles
+<nav role="navigation" aria-label="Main navigation">
+  <ul role="menubar">
+    <li role="none">
+      <a role="menuitem" href="/dashboard">Dashboard</a>
+    </li>
+  </ul>
+</nav>
+```
+
+## Focus Management
+
+### Focus Styles
+```typescript
+// ✅ CORRECT: Always include focus-visible styles
+className={cn(
+  "base-styles",
+  "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+  "outline-none",
+  className
+)}
+```
+
+### Keyboard Navigation
+```typescript
+// ✅ CORRECT: Handle keyboard events
+const handleKeyDown = (event: React.KeyboardEvent) => {
+  switch (event.key) {
+    case 'Enter':
+    case ' ':
+      event.preventDefault();
+      onClick?.();
+      break;
+    case 'Escape':
+      onClose?.();
+      break;
+  }
+};
+```
+
+## Screen Reader Support
+
+### Semantic HTML
+```typescript
+// ✅ CORRECT: Use semantic elements
+<main>
+  <section aria-labelledby="section-title">
+    <h2 id="section-title">Section Title</h2>
+    <p>Section content</p>
+  </section>
+</main>
+
+// ✅ CORRECT: Use proper heading hierarchy
+<h1>Page Title</h1>
+  <h2>Section Title</h2>
+    <h3>Subsection Title</h3>
+```
+
+### Live Regions
+```typescript
+// ✅ CORRECT: Status updates
+<div role="status" aria-live="polite">
+  {statusMessage}
+</div>
+
+// ✅ CORRECT: Error announcements
+<div role="alert" aria-live="assertive">
+  {errorMessage}
+</div>
+```
+
+## Color and Contrast
+
+### Color Accessibility
+```typescript
+// ✅ CORRECT: Don't rely on color alone
+<Badge variant={status === 'error' ? 'destructive' : 'default'}>
+  {status === 'error' ? 'Error' : 'Success'}
+</Badge>
+
+// ✅ CORRECT: Use icons with text
+<Button>
+  <Icon iconNode={SaveIcon} aria-hidden="true" />
+  Save Document
+</Button>
+```
+
+## Accessibility Checklist
+- [ ] All interactive elements have focus styles
+- [ ] Form inputs have proper labels
+- [ ] Error messages are announced to screen readers
+- [ ] Navigation is keyboard accessible
+- [ ] Color is not the only way to convey information
+- [ ] Images have alt text
+- [ ] Headings follow proper hierarchy
+- [ ] Live regions are used for dynamic content
+- [ ] ARIA attributes are used appropriately
+- [ ] Components work with screen readers

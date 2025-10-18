@@ -11,16 +11,76 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { type NavItem, type User } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { 
+    BookOpen, 
+    Folder, 
+    LayoutGrid, 
+    FileText, 
+    Users, 
+    CreditCard, 
+    Settings, 
+    Wallet,
+    ShoppingCart,
+    BarChart3,
+    DollarSign,
+    Clock,
+    CheckCircle,
+    XCircle
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
+// Client navigation items
+const clientNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: '/client/dashboard',
         icon: LayoutGrid,
+    },
+    {
+        title: 'Place Order',
+        href: '/orders/create',
+        icon: ShoppingCart,
+    },
+    {
+        title: 'My Orders',
+        href: '/orders',
+        icon: FileText,
+    },
+    {
+        title: 'Wallet',
+        href: '/wallet',
+        icon: Wallet,
+    },
+];
+
+// Admin navigation items
+const adminNavItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: '/admin/dashboard',
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Orders',
+        href: '/admin/orders',
+        icon: FileText,
+    },
+    {
+        title: 'Pending Orders',
+        href: '/admin/orders/pending',
+        icon: Clock,
+    },
+    {
+        title: 'Active Orders',
+        href: '/admin/orders/active',
+        icon: BarChart3,
+    },
+    {
+        title: 'Settings',
+        href: '/settings',
+        icon: Settings,
     },
 ];
 
@@ -38,6 +98,12 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<{ auth: { user: User } }>().props;
+    const user = auth.user;
+    
+    // Determine navigation items based on user role
+    const mainNavItems = user.role === 'admin' ? adminNavItems : clientNavItems;
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
