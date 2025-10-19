@@ -448,35 +448,18 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
             </div>
           </div>
 
-          {/* Progress Indicator */}
-          <div className="flex items-center gap-4 mb-10">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
-                1
-              </div>
-              <span className="text-sm font-medium text-blue-600">Paper details</span>
-            </div>
-            <div className="w-12 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold">
-                2
-              </div>
-              <span className="text-sm font-medium text-gray-500">Payment</span>
-            </div>
-            <div className="w-12 h-0.5 bg-gray-300"></div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold">
-                3
-              </div>
-              <span className="text-sm font-medium text-gray-500">Confirmation</span>
-            </div>
-          </div>
+         
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Form */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-              <div className="space-y-8">
+            <div className="relative border-l-4 border-dotted border-gray-200 p-8">
+              {/* Paper Details Label */}
+              <div className="absolute -left-2 top-0 bg-white px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-200 rounded-md shadow-sm">
+                <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45"></div>
+                Paper details
+              </div>
+              <div className="space-y-8 mt-6">
                 {/* Validation Error */}
                 {validationError && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
@@ -485,12 +468,19 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                 )}
 
                 {/* Service Type */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold text-gray-900">Service Type</Label>
+                <div className="space-y-2">
                   <SegmentedControl
                     value={formData.service_type}
                     onValueChange={(value) => handleInputChange('service_type', value)}
                     options={serviceTypes}
+                    containerClassName="w-full flex"
+                    textSize="lg"
+                    padding="lg"
+                    activeButtonClassName="text-white shadow-sm flex-1 border border-gray-300"
+                    inactiveButtonClassName="text-gray-600 hover:text-gray-900 flex-1 border border-gray-200"
+                    style={{
+                      '--active-bg': 'rgb(17, 24, 39)'
+                    } as React.CSSProperties}
                   />
                 </div>
 
@@ -507,6 +497,12 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                     value={formData.academic_level_id}
                     onValueChange={(value) => handleInputChange('academic_level_id', value)}
                     options={academicLevels}
+                    containerClassName="bg-gray-100 p-1 rounded-lg"
+                    textSize="base"
+                    padding="lg"
+                    rounded="lg"
+                    activeButtonClassName="bg-white text-gray-900 shadow-sm"
+                    inactiveButtonClassName="text-gray-600 hover:text-gray-900"
                   />
                 </div>
 
@@ -598,6 +594,12 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                     value={formData.paper_format}
                     onValueChange={(value) => handleInputChange('paper_format', value)}
                     options={paperFormats}
+                    containerClassName="bg-gray-100 p-1 rounded-lg"
+                    textSize="base"
+                    padding="lg"
+                    rounded="lg"
+                    activeButtonClassName="bg-white text-gray-900 shadow-sm"
+                    inactiveButtonClassName="text-gray-600 hover:text-gray-900"
                   />
                 </div>
 
@@ -662,6 +664,12 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                       value={formData.spacing}
                       onValueChange={(value) => handleInputChange('spacing', value)}
                       options={spacingOptions}
+                      containerClassName="bg-gray-100 p-1 rounded-lg"
+                      textSize="base"
+                      padding="lg"
+                      rounded="lg"
+                      activeButtonClassName="bg-white text-gray-900 shadow-sm"
+                      inactiveButtonClassName="text-gray-600 hover:text-gray-900"
                     />
                   </div>
                 </div>

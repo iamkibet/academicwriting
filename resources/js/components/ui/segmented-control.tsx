@@ -6,26 +6,83 @@ interface SegmentedControlProps {
   onValueChange: (value: string) => void
   options: Array<{ value: string; label: string }>
   className?: string
+  containerClassName?: string
+  buttonClassName?: string
+  activeButtonClassName?: string
+  inactiveButtonClassName?: string
+  textSize?: 'xs' | 'sm' | 'base' | 'lg' | 'xl'
+  padding?: 'sm' | 'md' | 'lg' | 'xl'
+  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full'
+  style?: React.CSSProperties
 }
 
 export function SegmentedControl({ 
   value, 
   onValueChange, 
   options, 
-  className 
+  className,
+  containerClassName,
+  buttonClassName,
+  activeButtonClassName,
+  inactiveButtonClassName,
+  textSize = 'sm',
+  padding = 'md',
+  rounded = 'none',
+  style
 }: SegmentedControlProps) {
+  // Text size classes
+  const textSizeClasses = {
+    xs: 'text-xs',
+    sm: 'text-sm',
+    base: 'text-base',
+    lg: 'text-lg',
+    xl: 'text-xl'
+  }
+
+  // Padding classes
+  const paddingClasses = {
+    sm: 'px-2 py-1',
+    md: 'px-4 py-2.5',
+    lg: 'px-6 py-3',
+    xl: 'px-8 py-4'
+  }
+
+  // Rounded classes
+  const roundedClasses = {
+    none: 'rounded-none',
+    sm: 'rounded-sm',
+    md: 'rounded-md',
+    lg: 'rounded-lg',
+    xl: 'rounded-xl',
+    full: 'rounded-full'
+  }
+
   return (
-    <div className={cn("inline-flex bg-gray-100 p-1 rounded-md", className)}>
+    <div className={cn(
+      "inline-flex ",
+      containerClassName || className
+    )}>
       {options.map((option) => (
         <button
           key={option.value}
           onClick={() => onValueChange(option.value)}
           className={cn(
-            "px-4 py-2.5 text-sm font-medium transition-colors rounded-md",
+            "font-medium transition-colors",
+            textSizeClasses[textSize],
+            paddingClasses[padding],
+            roundedClasses[rounded],
+            buttonClassName,
             value === option.value
-              ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              ? cn(
+                  "text-white shadow-sm",
+                  activeButtonClassName
+                )
+              : cn(
+                  "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
+                  inactiveButtonClassName
+                )
           )}
+          style={value === option.value && (style as any)?.['--active-bg'] ? { backgroundColor: (style as any)['--active-bg'] as string } : undefined}
         >
           {option.label}
         </button>
