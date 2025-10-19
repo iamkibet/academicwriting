@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\AcademicLevel;
 use App\Models\AcademicRate;
 use App\Models\Subject;
+use App\Models\ServiceType;
 use App\Models\OrderRate;
 use App\Models\Language;
+use App\Models\AdditionalFeature;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -100,12 +102,12 @@ class SettingsController extends Controller
     public function storeSubject(Request $request)
     {
         $request->validate([
-            'label' => 'required|string|max:255',
-            'inc_type' => 'required|in:percent,money',
-            'amount' => 'required|numeric|min:0',
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:subjects,slug',
+            'description' => 'nullable|string',
         ]);
 
-        Subject::create($request->only(['label', 'inc_type', 'amount']));
+        Subject::create($request->only(['name', 'slug', 'description']));
 
         return redirect()->back()->with('success', 'Subject created successfully.');
     }
@@ -113,12 +115,12 @@ class SettingsController extends Controller
     public function updateSubject(Request $request, Subject $subject)
     {
         $request->validate([
-            'label' => 'required|string|max:255',
-            'inc_type' => 'required|in:percent,money',
-            'amount' => 'required|numeric|min:0',
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:subjects,slug,' . $subject->id,
+            'description' => 'nullable|string',
         ]);
 
-        $subject->update($request->only(['label', 'inc_type', 'amount']));
+        $subject->update($request->only(['name', 'slug', 'description']));
 
         return redirect()->back()->with('success', 'Subject updated successfully.');
     }
@@ -128,6 +130,52 @@ class SettingsController extends Controller
         $subject->update(['is_active' => false]);
 
         return redirect()->back()->with('success', 'Subject deleted successfully.');
+    }
+
+    public function serviceTypes()
+    {
+        $serviceTypes = ServiceType::where('is_active', true)->get();
+
+        return Inertia::render('settings/service-types', [
+            'serviceTypes' => $serviceTypes,
+        ]);
+    }
+
+    public function storeServiceType(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:service_types,slug',
+            'description' => 'nullable|string',
+            'inc_type' => 'required|in:percent,money',
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        ServiceType::create($request->only(['name', 'slug', 'description', 'inc_type', 'amount']));
+
+        return redirect()->back()->with('success', 'Service Type created successfully.');
+    }
+
+    public function updateServiceType(Request $request, ServiceType $serviceType)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:service_types,slug,' . $serviceType->id,
+            'description' => 'nullable|string',
+            'inc_type' => 'required|in:percent,money',
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        $serviceType->update($request->only(['name', 'slug', 'description', 'inc_type', 'amount']));
+
+        return redirect()->back()->with('success', 'Service Type updated successfully.');
+    }
+
+    public function deleteServiceType(ServiceType $serviceType)
+    {
+        $serviceType->update(['is_active' => false]);
+
+        return redirect()->back()->with('success', 'Service Type deleted successfully.');
     }
 
     public function orderRates()
@@ -244,5 +292,51 @@ class SettingsController extends Controller
         $language->update(['is_active' => false]);
 
         return redirect()->back()->with('success', 'Language deleted successfully.');
+    }
+
+    public function additionalFeatures()
+    {
+        $additionalFeatures = AdditionalFeature::where('is_active', true)->orderBy('sort_order')->get();
+
+        return Inertia::render('settings/additional-features', [
+            'additionalFeatures' => $additionalFeatures,
+        ]);
+    }
+
+    public function storeAdditionalFeature(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'required|in:percent,fixed',
+            'amount' => 'required|numeric|min:0',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+
+        AdditionalFeature::create($request->only(['name', 'description', 'type', 'amount', 'sort_order']));
+
+        return redirect()->back()->with('success', 'Additional feature created successfully.');
+    }
+
+    public function updateAdditionalFeature(Request $request, AdditionalFeature $additionalFeature)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'required|in:percent,fixed',
+            'amount' => 'required|numeric|min:0',
+            'sort_order' => 'nullable|integer|min:0',
+        ]);
+
+        $additionalFeature->update($request->only(['name', 'description', 'type', 'amount', 'sort_order']));
+
+        return redirect()->back()->with('success', 'Additional feature updated successfully.');
+    }
+
+    public function deleteAdditionalFeature(AdditionalFeature $additionalFeature)
+    {
+        $additionalFeature->update(['is_active' => false]);
+
+        return redirect()->back()->with('success', 'Additional feature deleted successfully.');
     }
 }

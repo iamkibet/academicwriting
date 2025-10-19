@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreWebOrderRequest;
 use App\Models\Order;
+use App\Models\AdditionalFeature;
 use App\Services\OrderService;
 use App\Services\PricingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Inertia\ResponseFactory;
 
 class OrderController extends Controller
 {
@@ -28,6 +30,7 @@ class OrderController extends Controller
             'service_types' => $this->pricingService->getServiceTypes(),
             'deadline_types' => $this->pricingService->getDeadlineTypes(),
             'languages' => $this->pricingService->getLanguages(),
+            'additional_features' => $this->getAdditionalFeatures(),
         ];
 
         return Inertia::render('orders/create', [
@@ -38,7 +41,7 @@ class OrderController extends Controller
     /**
      * Store a newly created order
      */
-    public function store(StoreWebOrderRequest $request): RedirectResponse
+    public function store(StoreWebOrderRequest $request)
     {
         $user = $request->user();
 
@@ -50,8 +53,16 @@ class OrderController extends Controller
 
         $order = $this->orderService->createOrder($request->validated(), $user);
 
-        return redirect()->route('orders.show', $order)
-            ->with('success', 'Order placed successfully. Please complete payment to activate your order.');
+        // Redirect to dashboard with appropriate tab based on order status
+        $tab = match($order->status) {
+            'placed' => 'active',
+            'active', 'assigned', 'in_progress', 'submitted', 'waiting_for_review', 'in_revision' => 'active',
+            'completed' => 'completed',
+            'cancelled' => 'cancelled',
+            default => 'recent'
+        };
+
+        return Inertia::location(route('dashboard.orders', ['tab' => $tab]));
     }
 
     /**
@@ -178,6 +189,35 @@ class OrderController extends Controller
 
         $cancelledOrder = $this->orderService->cancelOrder($order, $user, $request->reason);
 
-        return redirect()->back()->with('success', 'Order cancelled successfully');
+        // Redirect to dashboard with cancelled tab
+        return Inertia::location(route('dashboard.orders', ['tab' => 'cancelled']))
+            ->with('success', 'Order cancelled successfully');
+    }
+
+    /**
+     * Get additional features for order form
+     */
+    private function getAdditionalFeatures(): array
+    {
+        return AdditionalFeature::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->mapWithKeys(function ($feature) {
+                $price = $feature->type === 'fixed' 
+                    ? '$' . number_format($feature->amount, 2)
+                    : '+' . $feature->amount . '%';
+                
+                return [
+                    $feature->id => [
+                        'id' => $feature->id,
+                        'name' => $feature->name,
+                        'description' => $feature->description,
+                        'type' => $feature->type,
+                        'amount' => $feature->amount,
+                        'price_display' => $price,
+                    ]
+                ];
+            })
+            ->toArray();
     }
 }

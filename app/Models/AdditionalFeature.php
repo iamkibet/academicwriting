@@ -15,6 +15,7 @@ class AdditionalFeature extends Model
         'type',
         'amount',
         'is_active',
+        'sort_order',
     ];
     
     protected function casts(): array

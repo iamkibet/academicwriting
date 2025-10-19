@@ -360,7 +360,7 @@ export function ClientDashboard({ initialStats, initialWallet, initialOrders }: 
               <div className="text-4xl mb-4">📝</div>
               <div className="text-lg font-medium mb-2">No orders yet</div>
               <div className="text-sm mb-4">Start by placing your first order</div>
-              <Button onClick={() => router.visit('/orders/create')}>
+              <Button onClick={() => router.visit('/dashboard/orders/create')}>
                 Place New Order
               </Button>
             </div>
@@ -388,7 +388,7 @@ export function ClientDashboard({ initialStats, initialWallet, initialOrders }: 
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => router.visit(`/orders/${order.id}`)}
+                      onClick={() => router.visit(`/dashboard/orders/${order.id}`)}
                     >
                       View Details
                     </Button>

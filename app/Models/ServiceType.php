@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Subject extends Model
+class ServiceType extends Model
 {
     use HasFactory;
 
@@ -13,15 +13,15 @@ class Subject extends Model
         'name',
         'slug',
         'description',
+        'inc_type',
+        'amount',
         'is_active',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'is_active' => 'boolean',
-        ];
-    }
+    protected $casts = [
+        'is_active' => 'boolean',
+        'amount' => 'decimal:2',
+    ];
 
     /**
      * Get the route key for the model.
@@ -32,7 +32,7 @@ class Subject extends Model
     }
 
     /**
-     * Scope a query to only include active subjects.
+     * Scope a query to only include active service types.
      */
     public function scopeActive($query)
     {

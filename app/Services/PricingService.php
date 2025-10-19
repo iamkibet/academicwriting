@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\PricingPreset;
 use App\Models\AcademicLevel;
 use App\Models\Subject;
+use App\Models\ServiceType;
 use App\Models\Language;
 use App\Models\OrderRate;
 
@@ -86,16 +87,15 @@ class PricingService
     /**
      * Get price estimate for frontend
      */
-    public function getPriceEstimate(int $academicLevelId, int $serviceTypeId, int $deadlineTypeId, int $languageId, int $pages): array
+    public function getPriceEstimate(int $academicLevelId, int $serviceTypeId, int $deadlineHours, int $languageId, int $pages, array $additionalFeatures = []): array
     {
         // Get the related models
         $academicLevel = AcademicLevel::find($academicLevelId);
         $serviceType = Subject::find($serviceTypeId);
-        $deadlineType = OrderRate::find($deadlineTypeId);
         $language = Language::find($languageId);
 
-        // Calculate base price based on academic level and deadline
-        $basePrice = $this->getBasePriceForAcademicLevel($academicLevelId, $deadlineTypeId);
+        // Calculate base price based on academic level and deadline (hours)
+        $basePrice = $this->getBasePriceForAcademicLevel($academicLevelId, $deadlineHours);
         
         // Apply service type increment
         $serviceIncrement = $this->getServiceTypeIncrement($serviceTypeId);
@@ -103,18 +103,22 @@ class PricingService
         // Apply language increment
         $languageIncrement = $this->getLanguageIncrement($languageId);
         
+        // Calculate additional features cost
+        $additionalFeaturesCost = $this->calculateAdditionalFeaturesCost($additionalFeatures, $basePrice * $pages * $serviceIncrement * $languageIncrement);
+        
         // Calculate total price
-        $totalPrice = $basePrice * $pages * $serviceIncrement * $languageIncrement;
+        $totalPrice = $basePrice * $pages * $serviceIncrement * $languageIncrement + $additionalFeaturesCost;
 
         return [
             'academic_level_id' => $academicLevelId,
             'service_type_id' => $serviceTypeId,
-            'deadline_type_id' => $deadlineTypeId,
+            'deadline_hours' => $deadlineHours,
             'language_id' => $languageId,
             'pages' => $pages,
             'base_price_per_page' => $basePrice,
             'service_increment' => $serviceIncrement,
             'language_increment' => $languageIncrement,
+            'additional_features_cost' => $additionalFeaturesCost,
             'total_price' => $totalPrice,
             'formatted_total_price' => '$' . number_format($totalPrice, 2),
             'price_breakdown' => [
@@ -122,6 +126,7 @@ class PricingService
                 'service_increment' => $serviceIncrement,
                 'language_increment' => $languageIncrement,
                 'pages' => $pages,
+                'additional_features_cost' => $additionalFeaturesCost,
                 'calculation' => $totalPrice,
             ],
         ];
@@ -143,17 +148,25 @@ class PricingService
     public function getServiceTypes(): array
     {
         return Subject::where('is_active', true)
-            ->pluck('label', 'id')
+            ->pluck('name', 'id')
             ->toArray();
     }
 
     /**
-     * Get available deadline types from database
+     * Get available deadline types for a specific academic level
      */
-    public function getDeadlineTypes(): array
+    public function getDeadlineTypes(int $academicLevelId = null): array
     {
-        return OrderRate::where('is_active', true)
-            ->pluck('label', 'id')
+        $query = \App\Models\AcademicRate::where('deleted', false);
+        
+        if ($academicLevelId) {
+            $query->where('academic_level_id', $academicLevelId);
+        }
+        
+        return $query->select('hours', 'label')
+            ->orderBy('hours')
+            ->get()
+            ->pluck('label', 'hours')
             ->toArray();
     }
 
@@ -210,24 +223,17 @@ class PricingService
      */
     private function getBasePriceForAcademicLevel(int $academicLevelId, int $deadlineTypeId): float
     {
-        $orderRate = OrderRate::find($deadlineTypeId);
-        $academicLevel = AcademicLevel::find($academicLevelId);
+        // Get the academic rate for the specific academic level and deadline (hours)
+        $academicRate = \App\Models\AcademicRate::where('academic_level_id', $academicLevelId)
+            ->where('hours', $deadlineTypeId)
+            ->where('deleted', false)
+            ->first();
         
-        if (!$orderRate || !$academicLevel) {
+        if (!$academicRate) {
             return 10.0; // Default price
         }
-
-        // Map academic level names to order rate columns
-        $levelMap = [
-            'High School' => 'high_school',
-            'Undergraduate' => 'under_graduate', 
-            'Masters' => 'masters',
-            'Ph.D' => 'phd',
-        ];
-
-        $levelColumn = $levelMap[$academicLevel->level] ?? 'high_school';
         
-        return (float) $orderRate->$levelColumn;
+        return (float) $academicRate->cost;
     }
 
     /**
@@ -235,16 +241,16 @@ class PricingService
      */
     private function getServiceTypeIncrement(int $serviceTypeId): float
     {
-        $subject = Subject::find($serviceTypeId);
+        $serviceType = \App\Models\ServiceType::find($serviceTypeId);
         
-        if (!$subject) {
+        if (!$serviceType) {
             return 1.0; // Default increment
         }
 
-        if ($subject->inc_type === 'percent') {
-            return 1 + ($subject->amount / 100); // Convert percentage to multiplier
+        if ($serviceType->inc_type === 'percent') {
+            return 1 + ($serviceType->amount / 100); // Convert percentage to multiplier
         } else {
-            return 1.0 + ($subject->amount / 100); // Convert money to percentage equivalent
+            return 1.0 + ($serviceType->amount / 100); // Convert money to percentage equivalent
         }
     }
 
@@ -264,5 +270,35 @@ class PricingService
         } else {
             return 1.0 + ($language->amount / 100); // Convert money to percentage equivalent
         }
+    }
+
+    /**
+     * Calculate additional features cost
+     */
+    private function calculateAdditionalFeaturesCost(array $additionalFeatureIds, float $basePrice): float
+    {
+        if (empty($additionalFeatureIds)) {
+            return 0.0;
+        }
+
+        $totalCost = 0.0;
+        
+        foreach ($additionalFeatureIds as $featureId) {
+            $feature = \App\Models\AdditionalFeature::find($featureId);
+            
+            if (!$feature || !$feature->is_active) {
+                continue;
+            }
+
+            if ($feature->type === 'fixed') {
+                // Fixed amount - add directly
+                $totalCost += $feature->amount;
+            } else {
+                // Percentage - calculate based on base price
+                $totalCost += $basePrice * ($feature->amount / 100);
+            }
+        }
+
+        return $totalCost;
     }
 }

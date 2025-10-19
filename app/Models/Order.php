@@ -16,12 +16,14 @@ class Order extends Model
         'description',
         'academic_level_id',
         'service_type_id',
-        'deadline_type_id',
+        'deadline_hours',
         'language_id',
         'deadline_date',
         'pages',
         'words',
+        'spacing',
         'price',
+        'additional_features',
         'status',
         'client_id',
         'writer_id',
@@ -39,6 +41,7 @@ class Order extends Model
             'price' => 'decimal:2',
             'pages' => 'integer',
             'words' => 'integer',
+            'additional_features' => 'array',
         ];
     }
 

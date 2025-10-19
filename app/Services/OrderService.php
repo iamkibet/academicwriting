@@ -22,23 +22,29 @@ class OrderService
             $priceEstimate = $pricingService->getPriceEstimate(
                 $data['academic_level_id'],
                 $data['service_type_id'],
-                $data['deadline_type_id'],
+                $data['deadline_hours'],
                 $data['language_id'],
-                $data['pages']
+                $data['pages'],
+                $data['additional_features'] ?? []
             );
 
-            // Create the order (using only fields that exist in the database)
+            // Calculate words based on pages and spacing
+            $wordsPerPage = ($data['spacing'] ?? 'double') === 'single' ? 500 : 250;
+            $calculatedWords = $data['pages'] * $wordsPerPage;
+
             $order = Order::create([
                 'title' => $data['topic'] ?? 'Writer\'s choice', // Use topic as title
                 'description' => $data['description'],
                 'academic_level_id' => $data['academic_level_id'],
                 'service_type_id' => $data['service_type_id'],
-                'deadline_type_id' => $data['deadline_type_id'],
+                'deadline_hours' => $data['deadline_hours'], // Use deadline_hours directly
                 'language_id' => $data['language_id'],
                 'deadline_date' => $data['deadline_date'],
                 'pages' => $data['pages'],
-                'words' => $data['words'],
+                'words' => $calculatedWords, // Use calculated words
+                'spacing' => $data['spacing'] ?? 'double',
                 'price' => $priceEstimate['total_price'],
+                'additional_features' => $data['additional_features'] ?? [],
                 'client_id' => $client->id,
                 'status' => Order::STATUS_PLACED,
             ]);

@@ -120,7 +120,7 @@ export function ClientOrderManagement({ initialOrders, filter = 'all' }: ClientO
   }
 
   const handlePlaceOrder = () => {
-    router.visit('/orders/create')
+    router.visit('/dashboard/orders/create')
   }
 
   const handlePaymentOptions = async (order: Order) => {

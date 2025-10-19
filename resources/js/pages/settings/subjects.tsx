@@ -20,9 +20,9 @@ import {
 
 interface Subject {
   id: number
-  label: string
-  inc_type: 'percent' | 'money'
-  amount: string
+  name: string
+  slug: string
+  description: string
   is_active: boolean
 }
 
@@ -36,15 +36,15 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null)
 
   const { data: createData, setData: setCreateData, post: createPost, processing: creating } = useForm({
-    label: '',
-    inc_type: 'percent' as 'percent' | 'money',
-    amount: '',
+    name: '',
+    slug: '',
+    description: '',
   })
 
   const { data: editData, setData: setEditData, patch: editPatch, processing: editing } = useForm({
-    label: '',
-    inc_type: 'percent' as 'percent' | 'money',
-    amount: '',
+    name: '',
+    slug: '',
+    description: '',
   })
 
   const handleCreateSubject = (e: React.FormEvent) => {
@@ -52,7 +52,7 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
     createPost('/settings/subjects', {
       onSuccess: () => {
         setIsCreating(false)
-        setCreateData({ label: '', inc_type: 'percent', amount: '' })
+        setCreateData({ name: '', slug: '', description: '' })
       }
     })
   }
@@ -60,9 +60,9 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
   const handleEditSubject = (subject: Subject) => {
     setEditingSubject(subject)
     setEditData({ 
-      label: subject.label, 
-      inc_type: subject.inc_type, 
-      amount: subject.amount 
+      name: subject.name, 
+      slug: subject.slug, 
+      description: subject.description 
     })
   }
 
@@ -72,7 +72,7 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
       editPatch(`/settings/subjects/${editingSubject.id}`, {
         onSuccess: () => {
           setEditingSubject(null)
-          setEditData({ label: '', inc_type: 'percent', amount: '' })
+          setEditData({ name: '', slug: '', description: '' })
         }
       })
     }
@@ -128,37 +128,32 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
               <form onSubmit={handleCreateSubject}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="label">Subject Label</Label>
+                    <Label htmlFor="name">Subject Name</Label>
                     <Input
-                      id="label"
-                      value={createData.label}
-                      onChange={(e) => setCreateData('label', e.target.value)}
+                      id="name"
+                      value={createData.name}
+                      onChange={(e) => setCreateData('name', e.target.value)}
                       placeholder="e.g., Mathematics, Science, Literature"
                       required
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="inc_type">Increment Type</Label>
-                    <select
-                      id="inc_type"
-                      value={createData.inc_type}
-                      onChange={(e) => setCreateData('inc_type', e.target.value as 'percent' | 'money')}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="percent">Percentage (%)</option>
-                      <option value="money">Fixed Amount ($)</option>
-                    </select>
+                    <Label htmlFor="slug">Slug</Label>
+                    <Input
+                      id="slug"
+                      value={createData.slug}
+                      onChange={(e) => setCreateData('slug', e.target.value)}
+                      placeholder="e.g., mathematics, science, literature"
+                      required
+                    />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="amount">Amount</Label>
+                    <Label htmlFor="description">Description</Label>
                     <Input
-                      id="amount"
-                      type="number"
-                      step="0.01"
-                      value={createData.amount}
-                      onChange={(e) => setCreateData('amount', e.target.value)}
-                      placeholder={createData.inc_type === 'percent' ? '10' : '5.00'}
-                      required
+                      id="description"
+                      value={createData.description}
+                      onChange={(e) => setCreateData('description', e.target.value)}
+                      placeholder="Brief description of this subject"
                     />
                   </div>
                 </div>
@@ -190,9 +185,9 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="border border-gray-200 px-4 py-2 text-left">ID</th>
-                    <th className="border border-gray-200 px-4 py-2 text-left">Label</th>
-                    <th className="border border-gray-200 px-4 py-2 text-left">Inc. Type</th>
-                    <th className="border border-gray-200 px-4 py-2 text-left">Amount</th>
+                    <th className="border border-gray-200 px-4 py-2 text-left">Name</th>
+                    <th className="border border-gray-200 px-4 py-2 text-left">Slug</th>
+                    <th className="border border-gray-200 px-4 py-2 text-left">Description</th>
                     <th className="border border-gray-200 px-4 py-2 text-left">Actions</th>
                   </tr>
                 </thead>
@@ -203,33 +198,18 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
                       <td className="border border-gray-200 px-4 py-2">
                         <div className="flex items-center gap-2">
                           <BookOpen className="h-4 w-4 text-gray-500" />
-                          {subject.label}
+                          {subject.name}
                         </div>
                       </td>
                       <td className="border border-gray-200 px-4 py-2">
-                        <div className="flex items-center gap-2">
-                          {subject.inc_type === 'percent' ? (
-                            <Percent className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <DollarSign className="h-4 w-4 text-green-500" />
-                          )}
-                          <span className="capitalize">{subject.inc_type}</span>
-                        </div>
+                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                          {subject.slug}
+                        </code>
                       </td>
                       <td className="border border-gray-200 px-4 py-2">
-                        <div className="flex items-center gap-1">
-                          {subject.inc_type === 'percent' ? (
-                            <>
-                              <Percent className="h-4 w-4 text-blue-500" />
-                              {subject.amount}%
-                            </>
-                          ) : (
-                            <>
-                              <DollarSign className="h-4 w-4 text-green-500" />
-                              ${Number(subject.amount).toFixed(2)}
-                            </>
-                          )}
-                        </div>
+                        <span className="text-sm text-gray-600">
+                          {subject.description || 'No description'}
+                        </span>
                       </td>
                       <td className="border border-gray-200 px-4 py-2">
                         <div className="flex gap-2">
@@ -277,35 +257,29 @@ export default function SubjectsPage({ subjects, errors }: SubjectsPageProps) {
             <form onSubmit={handleUpdateSubject}>
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-label">Subject Label</Label>
+                  <Label htmlFor="edit-name">Subject Name</Label>
                   <Input
-                    id="edit-label"
-                    value={editData.label}
-                    onChange={(e) => setEditData('label', e.target.value)}
+                    id="edit-name"
+                    value={editData.name}
+                    onChange={(e) => setEditData('name', e.target.value)}
                     required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-inc_type">Increment Type</Label>
-                  <select
-                    id="edit-inc_type"
-                    value={editData.inc_type}
-                    onChange={(e) => setEditData('inc_type', e.target.value as 'percent' | 'money')}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="percent">Percentage (%)</option>
-                    <option value="money">Fixed Amount ($)</option>
-                  </select>
+                  <Label htmlFor="edit-slug">Slug</Label>
+                  <Input
+                    id="edit-slug"
+                    value={editData.slug}
+                    onChange={(e) => setEditData('slug', e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-amount">Amount</Label>
+                  <Label htmlFor="edit-description">Description</Label>
                   <Input
-                    id="edit-amount"
-                    type="number"
-                    step="0.01"
-                    value={editData.amount}
-                    onChange={(e) => setEditData('amount', e.target.value)}
-                    required
+                    id="edit-description"
+                    value={editData.description}
+                    onChange={(e) => setEditData('description', e.target.value)}
                   />
                 </div>
               </div>

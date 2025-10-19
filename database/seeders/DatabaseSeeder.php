@@ -37,7 +37,10 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Seed pricing presets and settings
+        // Seed basic data first
+        $this->call(BasicDataSeeder::class);
+        
+        // Then seed pricing presets and settings
         $this->call(PricingPresetSeeder::class);
         $this->call(SettingsSeeder::class);
     }

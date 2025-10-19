@@ -49,7 +49,7 @@ const statusLabels = {
 
 export default function OrderCard({ order }: OrderCardProps) {
   const handleClick = () => {
-    router.visit(`/orders/${order.id}`);
+    router.visit(`/dashboard/orders/${order.id}`);
   };
 
   return (

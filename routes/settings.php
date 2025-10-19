@@ -24,6 +24,12 @@ Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::patch('settings/subjects/{subject}', [SettingsController::class, 'updateSubject'])->name('settings.subjects.update');
     Route::delete('settings/subjects/{subject}', [SettingsController::class, 'deleteSubject'])->name('settings.subjects.delete');
     
+    // Service Types
+    Route::get('settings/service-types', [SettingsController::class, 'serviceTypes'])->name('settings.service-types');
+    Route::post('settings/service-types', [SettingsController::class, 'storeServiceType'])->name('settings.service-types.store');
+    Route::patch('settings/service-types/{serviceType}', [SettingsController::class, 'updateServiceType'])->name('settings.service-types.update');
+    Route::delete('settings/service-types/{serviceType}', [SettingsController::class, 'deleteServiceType'])->name('settings.service-types.delete');
+    
     // Order Rates
     Route::get('settings/order-rates', [SettingsController::class, 'orderRates'])->name('settings.order-rates');
     Route::post('settings/order-rates', [SettingsController::class, 'storeOrderRate'])->name('settings.order-rates.store');
@@ -35,4 +41,10 @@ Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::post('settings/languages', [SettingsController::class, 'storeLanguage'])->name('settings.languages.store');
     Route::patch('settings/languages/{language}', [SettingsController::class, 'updateLanguage'])->name('settings.languages.update');
     Route::delete('settings/languages/{language}', [SettingsController::class, 'deleteLanguage'])->name('settings.languages.delete');
+    
+    // Additional Features
+    Route::get('settings/additional-features', [SettingsController::class, 'additionalFeatures'])->name('settings.additional-features');
+    Route::post('settings/additional-features', [SettingsController::class, 'storeAdditionalFeature'])->name('settings.additional-features.store');
+    Route::patch('settings/additional-features/{additionalFeature}', [SettingsController::class, 'updateAdditionalFeature'])->name('settings.additional-features.update');
+    Route::delete('settings/additional-features/{additionalFeature}', [SettingsController::class, 'deleteAdditionalFeature'])->name('settings.additional-features.delete');
 });

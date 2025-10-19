@@ -3,7 +3,9 @@
 namespace App\Http\Requests;
 
 use App\Models\Order;
+use App\Models\AcademicRate;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreWebOrderRequest extends FormRequest
 {
@@ -24,12 +26,21 @@ class StoreWebOrderRequest extends FormRequest
             'topic' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'academic_level_id' => ['required', 'exists:academic_levels,id'],
-            'service_type_id' => ['required', 'exists:subjects,id'],
-            'deadline_type_id' => ['required', 'exists:order_rates,id'],
+            'service_type_id' => ['required', 'exists:service_types,id'],
+            'deadline_hours' => [
+                'required', 
+                'integer', 
+                'min:1',
+                Rule::exists('academic_rates', 'hours')->where(function ($query) {
+                    return $query->where('academic_level_id', $this->input('academic_level_id'))
+                                 ->where('deleted', false);
+                })
+            ],
             'language_id' => ['required', 'exists:languages,id'],
             'deadline_date' => ['required', 'date', 'after:now'],
             'pages' => ['required', 'integer', 'min:1', 'max:100'],
             'words' => ['required', 'integer', 'min:250'],
+            'spacing' => ['required', 'in:single,double'],
         ];
     }
 
@@ -46,8 +57,8 @@ class StoreWebOrderRequest extends FormRequest
             'academic_level_id.exists' => 'The selected academic level is invalid.',
             'service_type_id.required' => 'Please select a service type.',
             'service_type_id.exists' => 'The selected service type is invalid.',
-            'deadline_type_id.required' => 'Please select a deadline type.',
-            'deadline_type_id.exists' => 'The selected deadline type is invalid.',
+            'deadline_hours.required' => 'Please select a deadline.',
+            'deadline_hours.exists' => 'The selected deadline is not available for this academic level.',
             'language_id.required' => 'Please select a language.',
             'language_id.exists' => 'The selected language is invalid.',
             'deadline_date.required' => 'Please select a deadline date.',
@@ -59,6 +70,8 @@ class StoreWebOrderRequest extends FormRequest
             'words.required' => 'Please specify the number of words.',
             'words.integer' => 'The number of words must be a whole number.',
             'words.min' => 'The order must be at least 250 words.',
+            'spacing.required' => 'Please select a spacing option.',
+            'spacing.in' => 'The spacing must be either single or double.',
         ];
     }
 }

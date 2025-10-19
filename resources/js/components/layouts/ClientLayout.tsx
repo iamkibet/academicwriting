@@ -76,7 +76,7 @@ export default function ClientLayout({ children, user }: PropsWithChildren<Props
                                 </div>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem asChild>
-                                    <Link href="/orders" className="flex w-full items-center gap-2">
+                                    <Link href="/dashboard/orders" className="flex w-full items-center gap-2">
                                         <FileText className="size-4 text-blue-500" />
                                         My Orders
                                     </Link>
@@ -104,8 +104,8 @@ export default function ClientLayout({ children, user }: PropsWithChildren<Props
                     <MaxWidthWrapper className="flex w-full items-center justify-between">
                         <div className="flex h-full gap-2">
                             <Link
-                                href="/orders"
-                                className={`flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath.startsWith('/orders') ? 'bg-[#048e86] shadow-md' : ''}`}
+                                href="/dashboard/orders"
+                                className={`flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath.startsWith('/dashboard/orders') ? 'bg-[#048e86] shadow-md' : ''}`}
                             >
                                 <Icon iconNode={FileText} className="h-5 w-5 text-white" />
                                 My Orders
@@ -123,8 +123,8 @@ export default function ClientLayout({ children, user }: PropsWithChildren<Props
                         </div>
                         <div className="flex h-full gap-2">
                             <Link
-                                href="/wallet"
-                                className={`flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath === '/wallet' ? 'bg-[#048e86] shadow-md' : ''}`}
+                                href="/dashboard/wallet"
+                                className={`flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath === '/dashboard/wallet' ? 'bg-[#048e86] shadow-md' : ''}`}
                             >
                                 <Icon iconNode={Wallet} className="h-5 w-5 text-white" />
                                 My Wallet
@@ -137,7 +137,7 @@ export default function ClientLayout({ children, user }: PropsWithChildren<Props
                                 Free Inquiry
                             </Link>
                             <Link
-                                href="/orders/create"
+                                href="/dashboard/orders/create"
                                 className="flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white hover:bg-[#048e86]"
                             >
                                 <Icon iconNode={FilePlus2} className="h-5 w-5 text-white" />

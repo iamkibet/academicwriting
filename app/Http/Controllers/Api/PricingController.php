@@ -34,17 +34,25 @@ class PricingController extends Controller
         $request->validate([
             'academic_level_id' => 'required|exists:academic_levels,id',
             'service_type_id' => 'required|exists:subjects,id',
-            'deadline_type_id' => 'required|exists:order_rates,id',
+            'deadline_hours' => 'required|integer|min:1',
             'language_id' => 'required|exists:languages,id',
             'pages' => 'required|integer|min:1|max:100',
+            'additional_features' => 'nullable|string', // JSON string of additional feature IDs
         ]);
+
+        // Parse additional features from JSON string
+        $additionalFeatures = [];
+        if ($request->additional_features) {
+            $additionalFeatures = json_decode($request->additional_features, true) ?? [];
+        }
 
         $estimate = $this->pricingService->getPriceEstimate(
             $request->academic_level_id,
             $request->service_type_id,
-            $request->deadline_type_id,
+            $request->deadline_hours,
             $request->language_id,
-            $request->pages
+            $request->pages,
+            $additionalFeatures
         );
 
         return response()->json([
@@ -78,14 +86,16 @@ class PricingController extends Controller
     /**
      * Get available options
      */
-    public function options(): JsonResponse
+    public function options(Request $request): JsonResponse
     {
+        $academicLevelId = $request->query('academic_level_id');
+        
         return response()->json([
             'success' => true,
             'data' => [
                 'academic_levels' => $this->pricingService->getAcademicLevels(),
                 'service_types' => $this->pricingService->getServiceTypes(),
-                'deadline_types' => $this->pricingService->getDeadlineTypes(),
+                'deadline_types' => $this->pricingService->getDeadlineTypes($academicLevelId),
                 'languages' => $this->pricingService->getLanguages(),
                 'deadline_multipliers' => $this->pricingService->getDeadlineMultipliers(),
                 'academic_level_multipliers' => $this->pricingService->getAcademicLevelMultipliers(),

@@ -15,11 +15,11 @@ class SettingsSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create Academic Levels
-        $highSchool = AcademicLevel::create(['level' => 'High School']);
-        $undergraduate = AcademicLevel::create(['level' => 'Undergraduate']);
-        $masters = AcademicLevel::create(['level' => 'Masters']);
-        $phd = AcademicLevel::create(['level' => 'Ph.D']);
+        // Get existing Academic Levels (created by BasicDataSeeder)
+        $highSchool = AcademicLevel::where('level', 'High School')->first();
+        $undergraduate = AcademicLevel::where('level', 'Undergraduate')->first();
+        $masters = AcademicLevel::where('level', 'Masters')->first();
+        $phd = AcademicLevel::where('level', 'Ph.D')->first();
 
         // Create Academic Rates for High School
         $highSchool->rates()->createMany([
@@ -61,13 +61,7 @@ class SettingsSeeder extends Seeder
             ['hours' => 3, 'label' => '3 Hours', 'cost' => 50.00],
         ]);
 
-        // Create Subjects
-        Subject::create(['label' => 'Mathematics', 'inc_type' => 'percent', 'amount' => 10]);
-        Subject::create(['label' => 'Science', 'inc_type' => 'percent', 'amount' => 15]);
-        Subject::create(['label' => 'Literature', 'inc_type' => 'percent', 'amount' => 5]);
-        Subject::create(['label' => 'History', 'inc_type' => 'percent', 'amount' => 8]);
-        Subject::create(['label' => 'Engineering', 'inc_type' => 'percent', 'amount' => 20]);
-        Subject::create(['label' => 'Medicine', 'inc_type' => 'percent', 'amount' => 25]);
+        // Subjects are created by BasicDataSeeder
 
         // Create Order Rates
         OrderRate::create([
@@ -134,30 +128,35 @@ class SettingsSeeder extends Seeder
             'description' => 'Detailed plagiarism report with originality score',
             'type' => 'fixed',
             'amount' => 15.00,
+            'sort_order' => 1,
         ]);
         AdditionalFeature::create([
             'name' => 'Priority Support',
             'description' => '24/7 priority customer support',
             'type' => 'fixed',
             'amount' => 25.00,
+            'sort_order' => 2,
         ]);
         AdditionalFeature::create([
             'name' => 'Unlimited Revisions',
             'description' => 'Unlimited revisions until satisfaction',
             'type' => 'percent',
             'amount' => 20.00,
+            'sort_order' => 3,
         ]);
         AdditionalFeature::create([
             'name' => 'Progressive Delivery',
             'description' => 'Receive work in parts as it\'s completed',
             'type' => 'fixed',
             'amount' => 10.00,
+            'sort_order' => 4,
         ]);
         AdditionalFeature::create([
             'name' => 'Top Writer',
             'description' => 'Assign to our most experienced writers',
             'type' => 'percent',
             'amount' => 30.00,
+            'sort_order' => 5,
         ]);
 
         // Create Writer Categories

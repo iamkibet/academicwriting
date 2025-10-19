@@ -1,10 +1,10 @@
-import { Head } from '@inertiajs/react'
+import { Head, router } from '@inertiajs/react'
 import MaxWidthWrapper from '@/components/MaxWidthWrapper';
 import OrderCard from '@/components/OrderCard';
 import ClientLayout from '@/components/layouts/ClientLayout';
 import { User } from '@/types';
 import { CheckCircle, Clock, FileText, XCircle, Activity } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Order {
     id: number;
@@ -46,7 +46,9 @@ interface ClientDashboardPageProps {
       debit_transactions: number
     }
   }
+  orders?: Order[]
   recentOrders?: Order[]
+  currentTab?: string
   errors?: Record<string, string>
 }
 
@@ -71,24 +73,30 @@ export default function ClientDashboardPage({
   auth,
   stats, 
   wallet, 
+  orders,
   recentOrders, 
+  currentTab = 'recent',
   errors 
 }: ClientDashboardPageProps) {
     const { user } = auth;
-    const [activeTab, setActiveTab] = useState('recent');
+    const [activeTab, setActiveTab] = useState(currentTab);
     
-    // Filter orders by tab
-    let filteredOrders = recentOrders || [];
-    if (activeTab === 'active') {
-        filteredOrders = (recentOrders || []).filter((order: any) => 
-            ['active', 'assigned', 'in_progress', 'submitted', 'waiting_for_review', 'in_revision'].includes(order.status)
-        );
-    } else if (activeTab === 'completed') {
-        filteredOrders = (recentOrders || []).filter((order: any) => order.status === 'completed');
-    } else if (activeTab === 'cancelled') {
-        filteredOrders = (recentOrders || []).filter((order: any) => order.status === 'cancelled');
-    }
-    // For 'recent', show all orders
+    // Use orders from backend if available, otherwise fall back to recentOrders
+    const allOrders = orders || recentOrders || [];
+    
+    // Handle tab change with URL update
+    const handleTabChange = (tabKey: string) => {
+        setActiveTab(tabKey);
+        router.get('/dashboard/orders', { tab: tabKey }, {
+            preserveState: true,
+            replace: true
+        });
+    };
+    
+    // Update active tab when currentTab prop changes
+    useEffect(() => {
+        setActiveTab(currentTab);
+    }, [currentTab]);
 
     return (
         <>
@@ -104,7 +112,7 @@ export default function ClientDashboardPage({
                                         {TABS.map((tab) => (
                                             <button
                                                 key={tab.key}
-                                                onClick={() => setActiveTab(tab.key)}
+                                                onClick={() => handleTabChange(tab.key)}
                                                 className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium whitespace-nowrap ${
                                                     activeTab === tab.key
                                                         ? 'border-blue-500 text-blue-600'
@@ -122,9 +130,9 @@ export default function ClientDashboardPage({
 
                         {/* Orders List */}
                         <div className="mt-6">
-                            {filteredOrders.length > 0 ? (
+                            {allOrders.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-6">
-                                    {filteredOrders.map((order: any) => (
+                                    {allOrders.map((order: any) => (
                                         <OrderCard
                                             key={order.id}
                                             order={order}

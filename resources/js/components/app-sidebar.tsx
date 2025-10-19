@@ -27,7 +27,9 @@ import {
     DollarSign,
     Clock,
     CheckCircle,
-    XCircle
+    XCircle,
+    GraduationCap,
+    Globe
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -35,22 +37,22 @@ import AppLogo from './app-logo';
 const clientNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: '/client/dashboard',
+        href: '/dashboard/orders',
         icon: LayoutGrid,
     },
     {
         title: 'Place Order',
-        href: '/orders/create',
+        href: '/dashboard/orders/create',
         icon: ShoppingCart,
     },
     {
         title: 'My Orders',
-        href: '/orders',
+        href: '/dashboard/orders',
         icon: FileText,
     },
     {
         title: 'Wallet',
-        href: '/wallet',
+        href: '/dashboard/wallet',
         icon: Wallet,
     },
 ];

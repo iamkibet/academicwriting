@@ -15,13 +15,13 @@ export function SegmentedControl({
   className 
 }: SegmentedControlProps) {
   return (
-    <div className={cn("inline-flex bg-gray-100 p-1", className)}>
+    <div className={cn("inline-flex bg-gray-100 p-1 rounded-md", className)}>
       {options.map((option) => (
         <button
           key={option.value}
           onClick={() => onValueChange(option.value)}
           className={cn(
-            "px-4 py-2.5 text-sm font-medium transition-colors",
+            "px-4 py-2.5 text-sm font-medium transition-colors rounded-md",
             value === option.value
               ? "bg-white text-gray-900 shadow-sm border border-gray-200"
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"

@@ -11,7 +11,8 @@ import {
   Settings as SettingsIcon,
   Users,
   FileText,
-  Languages
+  Languages,
+  Star
 } from 'lucide-react'
 
 export default function SettingsIndexPage() {
@@ -25,10 +26,17 @@ export default function SettingsIndexPage() {
     },
     {
       title: 'Subjects',
-      description: 'Manage subject categories and increments',
+      description: 'Manage academic subject categories',
       icon: BookOpen,
       href: '/settings/subjects',
       color: 'bg-green-50 text-green-600',
+    },
+    {
+      title: 'Service Types',
+      description: 'Manage work types and pricing increments',
+      icon: FileText,
+      href: '/settings/service-types',
+      color: 'bg-yellow-50 text-yellow-600',
     },
     {
       title: 'Order Rates',
@@ -43,6 +51,13 @@ export default function SettingsIndexPage() {
       icon: Languages,
       href: '/settings/languages',
       color: 'bg-indigo-50 text-indigo-600',
+    },
+    {
+      title: 'Additional Features',
+      description: 'Manage optional features and add-ons',
+      icon: Star,
+      href: '/settings/additional-features',
+      color: 'bg-pink-50 text-pink-600',
     },
     {
       title: 'Pricing Presets',

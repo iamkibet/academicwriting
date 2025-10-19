@@ -20,18 +20,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         } else {
-            return redirect()->route('client.dashboard');
+            return redirect()->route('dashboard.orders');
         }
     })->name('dashboard');
 
-    // Client routes
-    Route::middleware('client')->group(function () {
-        Route::get('client/dashboard', [ClientDashboardController::class, 'index'])->name('client.dashboard');
-        Route::get('wallet', [WalletController::class, 'index'])->name('wallet');
+    // Client routes - all under dashboard prefix
+    Route::middleware('client')->prefix('dashboard')->name('dashboard.')->group(function () {
+        // Dashboard main page
+        Route::get('orders', [ClientDashboardController::class, 'orders'])->name('orders');
         
-        // Client order routes
-        Route::resource('orders', OrderController::class)->only(['index', 'show', 'create', 'store']);
+        // Order routes
+        Route::get('orders/create', [OrderController::class, 'create'])->name('orders.create');
+        Route::post('orders', [OrderController::class, 'store'])->name('orders.store');
+        Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+        
+        // Wallet routes
+        Route::get('wallet', [WalletController::class, 'index'])->name('wallet');
     });
 
     // Admin routes
@@ -47,6 +52,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.status');
         Route::patch('orders/{order}/accept', [OrderController::class, 'accept'])->name('orders.accept');
         Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+
+        // All management is now in /settings
     });
 });
 

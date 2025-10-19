@@ -17,12 +17,14 @@ return new class extends Migration
             $table->text('description');
             $table->foreignId('academic_level_id')->constrained('academic_levels')->cascadeOnDelete();
             $table->foreignId('service_type_id')->constrained('subjects')->cascadeOnDelete();
-            $table->foreignId('deadline_type_id')->constrained('order_rates')->cascadeOnDelete();
+            $table->integer('deadline_hours');
             $table->foreignId('language_id')->constrained('languages')->cascadeOnDelete();
             $table->datetime('deadline_date');
             $table->integer('pages');
             $table->integer('words');
+            $table->enum('spacing', ['single', 'double'])->default('double');
             $table->decimal('price', 10, 2);
+            $table->json('additional_features')->nullable(); // Store selected additional features as JSON
             $table->enum('status', [
                 'placed', 'active', 'assigned', 'in_progress', 
                 'submitted', 'waiting_for_review', 'completed', 

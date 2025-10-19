@@ -18,8 +18,13 @@ Route::get('/pricing/options', [PricingController::class, 'options']);
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    // Order routes
-    Route::apiResource('orders', OrderController::class);
+    // Order routes (excluding store method which is handled by web routes)
+    Route::apiResource('orders', OrderController::class)->except(['store'])->names([
+        'index' => 'api.orders.index',
+        'show' => 'api.orders.show',
+        'update' => 'api.orders.update',
+        'destroy' => 'api.orders.destroy'
+    ]);
     Route::patch('orders/{order}/status', [OrderController::class, 'updateStatus']);
     Route::patch('orders/{order}/accept', [OrderController::class, 'accept']);
     Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel']);
