@@ -8,6 +8,8 @@ use App\Models\Subject;
 use App\Models\ServiceType;
 use App\Models\Language;
 use App\Models\OrderRate;
+use App\Models\AdditionalFeature;
+use App\Models\Order;
 
 class PricingService
 {
@@ -104,10 +106,26 @@ class PricingService
         $languageIncrement = $this->getLanguageIncrement($languageId);
         
         // Calculate additional features cost
-        $additionalFeaturesCost = $this->calculateAdditionalFeaturesCost($additionalFeatures, $basePrice * $pages * $serviceIncrement * $languageIncrement);
+        $basePriceForOrder = $basePrice * $pages * $serviceIncrement * $languageIncrement;
+        $additionalFeaturesCost = $this->calculateAdditionalFeaturesCost($additionalFeatures, $basePriceForOrder);
         
         // Calculate total price
-        $totalPrice = $basePrice * $pages * $serviceIncrement * $languageIncrement + $additionalFeaturesCost;
+        $totalPrice = $basePriceForOrder + $additionalFeaturesCost;
+        
+        // Log for debugging
+        \Log::info('Price estimate calculation', [
+            'academic_level_id' => $academicLevelId,
+            'service_type_id' => $serviceTypeId,
+            'deadline_hours' => $deadlineHours,
+            'language_id' => $languageId,
+            'pages' => $pages,
+            'base_price' => $basePrice,
+            'service_increment' => $serviceIncrement,
+            'language_increment' => $languageIncrement,
+            'base_price_for_order' => $basePriceForOrder,
+            'additional_features_cost' => $additionalFeaturesCost,
+            'total_price' => $totalPrice
+        ]);
 
         return [
             'academic_level_id' => $academicLevelId,
@@ -116,6 +134,7 @@ class PricingService
             'language_id' => $languageId,
             'pages' => $pages,
             'base_price_per_page' => $basePrice,
+            'price_per_page' => $totalPrice / $pages, // Total price per page including additional features
             'service_increment' => $serviceIncrement,
             'language_increment' => $languageIncrement,
             'additional_features_cost' => $additionalFeaturesCost,
@@ -123,6 +142,7 @@ class PricingService
             'formatted_total_price' => '$' . number_format($totalPrice, 2),
             'price_breakdown' => [
                 'base_price' => $basePrice,
+                'price_per_page' => $totalPrice / $pages, // Total price per page including additional features
                 'service_increment' => $serviceIncrement,
                 'language_increment' => $languageIncrement,
                 'pages' => $pages,
@@ -177,6 +197,31 @@ class PricingService
     {
         return Language::where('is_active', true)
             ->pluck('label', 'id')
+            ->toArray();
+    }
+
+    /**
+     * Get available additional features from database
+     */
+    public function getAdditionalFeatures(): array
+    {
+        return AdditionalFeature::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get()
+            ->mapWithKeys(function ($feature) {
+                return [
+                    $feature->id => [
+                        'id' => $feature->id,
+                        'name' => $feature->name,
+                        'type' => $feature->type,
+                        'amount' => $feature->amount,
+                        'description' => $feature->description,
+                        'price_display' => $feature->type === 'fixed' 
+                            ? '$' . number_format($feature->amount, 2)
+                            : $feature->amount . '%'
+                    ]
+                ];
+            })
             ->toArray();
     }
 
@@ -273,29 +318,76 @@ class PricingService
     }
 
     /**
-     * Calculate additional features cost
+     * Get base price per page for an existing order
+     * Use the same calculation as getPriceEstimate to ensure consistency
      */
-    private function calculateAdditionalFeaturesCost(array $additionalFeatureIds, float $basePrice): float
+    public function getBasePricePerPageForOrder(Order $order): float
     {
-        if (empty($additionalFeatureIds)) {
+        // Convert additional features from stored format to ID format for getPriceEstimate
+        $additionalFeatures = [];
+        foreach ($order->additional_features as $feature) {
+            $additionalFeatures[] = $feature['id'];
+        }
+        
+        // Use the same calculation as getPriceEstimate
+        $priceEstimate = $this->getPriceEstimate(
+            $order->academic_level_id,
+            $order->service_type_id,
+            $order->deadline_hours,
+            $order->language_id,
+            $order->pages,
+            $additionalFeatures
+        );
+        
+        // Return the base price per page from the estimate
+        $basePricePerPage = $priceEstimate['base_price_per_page'];
+        
+        // Log for debugging
+        \Log::info('Base price per page calculation for order ' . $order->id, [
+            'academic_level_id' => $order->academic_level_id,
+            'deadline_hours' => $order->deadline_hours,
+            'service_type_id' => $order->service_type_id,
+            'language_id' => $order->language_id,
+            'base_price_per_page' => $basePricePerPage
+        ]);
+        
+        return $basePricePerPage;
+    }
+
+
+    /**
+     * Calculate additional features cost
+     * Handles both ID format (from frontend) and array format (from order data)
+     */
+    private function calculateAdditionalFeaturesCost(array $additionalFeatures, float $basePrice): float
+    {
+        if (empty($additionalFeatures)) {
             return 0.0;
         }
 
         $totalCost = 0.0;
         
-        foreach ($additionalFeatureIds as $featureId) {
-            $feature = \App\Models\AdditionalFeature::find($featureId);
-            
-            if (!$feature || !$feature->is_active) {
-                continue;
+        foreach ($additionalFeatures as $feature) {
+            // Handle ID format (from frontend) - convert to feature object
+            if (is_numeric($feature)) {
+                $featureModel = \App\Models\AdditionalFeature::find($feature);
+                if (!$featureModel || !$featureModel->is_active) {
+                    continue;
+                }
+                
+                if ($featureModel->type === 'fixed') {
+                    $totalCost += $featureModel->amount;
+                } else {
+                    $totalCost += $basePrice * ($featureModel->amount / 100);
+                }
             }
-
-            if ($feature->type === 'fixed') {
-                // Fixed amount - add directly
-                $totalCost += $feature->amount;
-            } else {
-                // Percentage - calculate based on base price
-                $totalCost += $basePrice * ($feature->amount / 100);
+            // Handle array format (from order data)
+            else if (is_array($feature) && isset($feature['type']) && isset($feature['amount'])) {
+                if ($feature['type'] === 'fixed') {
+                    $totalCost += $feature['amount'];
+                } else {
+                    $totalCost += $basePrice * ($feature['amount'] / 100);
+                }
             }
         }
 

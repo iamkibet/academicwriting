@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
+import { Link } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
+import { Plus, Wallet } from 'lucide-react'
+import { WalletTopUpModal } from '@/components/wallet-topup-modal'
 
 interface WalletData {
   balance: number
@@ -38,6 +41,7 @@ export function WalletBalance({ showTransactions = true, showTopUpButton = true 
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
+  const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false)
 
   useEffect(() => {
     fetchWalletData()
@@ -76,8 +80,15 @@ export function WalletBalance({ showTransactions = true, showTopUpButton = true 
   }
 
   const handleTopUp = () => {
-    // In a real implementation, this would open a top-up modal
-    console.log('Top up wallet clicked')
+    setIsTopUpModalOpen(true)
+  }
+
+  const handleTopUpSuccess = () => {
+    // Refresh wallet data after successful top-up
+    fetchWalletData()
+    if (showTransactions) {
+      fetchTransactions()
+    }
   }
 
   if (isLoading) {
@@ -106,23 +117,32 @@ export function WalletBalance({ showTransactions = true, showTopUpButton = true 
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <WalletTopUpModal
+        open={isTopUpModalOpen}
+        onOpenChange={setIsTopUpModalOpen}
+        onSuccess={handleTopUpSuccess}
+      />
+      <div className="space-y-6">
       {/* Wallet Balance Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>Wallet Balance</CardTitle>
-          <CardDescription>
+        <CardHeader className="bg-gradient-to-r from-[#05ADA3] to-[#048e86] text-white rounded-t-lg">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-6 w-6" />
+            <CardTitle className="text-white">Wallet Balance</CardTitle>
+          </div>
+          <CardDescription className="text-white/90">
             Your current wallet balance and transaction summary
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {/* Current Balance */}
-            <div className="text-center">
-              <div className="text-4xl font-bold text-primary">
+            <div className="text-center py-4">
+              <div className="text-5xl font-bold text-[#05ADA3]">
                 {walletData.formatted_balance}
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground mt-2">
                 Current Balance
               </div>
             </div>
@@ -150,7 +170,8 @@ export function WalletBalance({ showTransactions = true, showTopUpButton = true 
             {/* Top Up Button */}
             {showTopUpButton && (
               <div className="pt-4">
-                <Button onClick={handleTopUp} className="w-full">
+                <Button onClick={handleTopUp} className="w-full bg-[#05ADA3] hover:bg-[#048e86] flex items-center justify-center gap-2">
+                  <Plus className="h-4 w-4" />
                   Top Up Wallet
                 </Button>
               </div>
@@ -204,5 +225,6 @@ export function WalletBalance({ showTransactions = true, showTopUpButton = true 
         </Card>
       )}
     </div>
+    </>
   )
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Enums\OrderStatus;
 use App\Services\PaymentService;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +31,7 @@ class PaymentController extends Controller
             ], 403);
         }
 
-        if ($order->status !== Order::STATUS_PLACED) {
+        if ($order->status !== OrderStatus::WAITING_FOR_PAYMENT) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order is not in placed status',
@@ -64,7 +65,7 @@ class PaymentController extends Controller
             ], 403);
         }
 
-        if ($order->status !== Order::STATUS_PLACED) {
+        if ($order->status !== OrderStatus::WAITING_FOR_PAYMENT) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order is not in placed status',
@@ -94,7 +95,7 @@ class PaymentController extends Controller
             ], 403);
         }
 
-        if ($order->status !== Order::STATUS_PLACED) {
+        if ($order->status !== OrderStatus::WAITING_FOR_PAYMENT) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order is not in placed status',
@@ -128,7 +129,7 @@ class PaymentController extends Controller
             ], 403);
         }
 
-        if ($order->status !== Order::STATUS_PLACED) {
+        if ($order->status !== OrderStatus::WAITING_FOR_PAYMENT) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order is not in placed status',

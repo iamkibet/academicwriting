@@ -378,7 +378,7 @@ export function ClientDashboard({ initialStats, initialWallet, initialOrders }: 
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Order #{order.id} • {order.pages} pages • ${Number(order.price).toFixed(2)}
+                      Order #{String(order.id).padStart(4, '0')} • {order.pages} pages • ${Number(order.price).toFixed(2)}
                     </div>
                   </div>
                   <div className="text-right">

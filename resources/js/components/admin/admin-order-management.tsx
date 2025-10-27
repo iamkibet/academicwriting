@@ -274,7 +274,7 @@ export function AdminOrderManagement({ initialOrders, filter = 'all' }: AdminOrd
                     <div>
                       <CardTitle className="text-lg">{order.title}</CardTitle>
                       <CardDescription>
-                        Order #{order.id} • Client: {order.client?.name || 'Unknown'} • 
+                        Order #{String(order.id).padStart(4, '0')} • Client: {order.client?.name || 'Unknown'} • 
                         Placed {formatDate(order.created_at)}
                       </CardDescription>
                     </div>

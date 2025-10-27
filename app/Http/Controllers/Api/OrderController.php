@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Order;
+use App\Enums\OrderStatus;
 use App\Services\OrderService;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
@@ -132,7 +133,7 @@ class OrderController extends Controller
             ], 403);
         }
 
-        if ($order->status !== Order::STATUS_PLACED) {
+        if ($order->status !== OrderStatus::WAITING_FOR_PAYMENT) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order is not in placed status',
@@ -168,7 +169,7 @@ class OrderController extends Controller
         }
 
         // Check if order can be cancelled
-        if (in_array($order->status, [Order::STATUS_COMPLETED, Order::STATUS_CANCELLED])) {
+        if (in_array($order->status, [OrderStatus::APPROVAL, OrderStatus::CANCELLED])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Order cannot be cancelled',
@@ -180,7 +181,7 @@ class OrderController extends Controller
         ]);
 
         // Process cancellation refund if payment was made
-        if ($order->status !== Order::STATUS_PLACED) {
+        if ($order->status !== OrderStatus::WAITING_FOR_PAYMENT) {
             $refundResult = $this->paymentService->processOrderCancellation($order);
             
             if (!$refundResult['success']) {

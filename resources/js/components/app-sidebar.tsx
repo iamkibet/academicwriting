@@ -80,6 +80,11 @@ const adminNavItems: NavItem[] = [
         icon: BarChart3,
     },
     {
+        title: 'Cancelled Orders',
+        href: '/admin/orders/cancelled',
+        icon: XCircle,
+    },
+    {
         title: 'Settings',
         href: '/settings',
         icon: Settings,

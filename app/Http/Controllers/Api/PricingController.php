@@ -97,6 +97,7 @@ class PricingController extends Controller
                 'service_types' => $this->pricingService->getServiceTypes(),
                 'deadline_types' => $this->pricingService->getDeadlineTypes($academicLevelId),
                 'languages' => $this->pricingService->getLanguages(),
+                'additional_features' => $this->pricingService->getAdditionalFeatures(),
                 'deadline_multipliers' => $this->pricingService->getDeadlineMultipliers(),
                 'academic_level_multipliers' => $this->pricingService->getAcademicLevelMultipliers(),
                 'service_type_multipliers' => $this->pricingService->getServiceTypeMultipliers(),

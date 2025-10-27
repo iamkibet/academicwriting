@@ -111,8 +111,8 @@ export default function ClientLayout({ children, user }: PropsWithChildren<Props
                                 My Orders
                             </Link>
                             <Link
-                                href="#"
-                                className={`relative flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath === '/client/rewards' ? 'bg-[#048e86] shadow-md' : ''}`}
+                                href="/dashboard/rewards"
+                                className={`relative flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath === '/dashboard/rewards' ? 'bg-[#048e86] shadow-md' : ''}`}
                             >
                                 <Icon iconNode={Gift} className="h-5 w-5 text-white" />
                                 Rewards program
@@ -130,8 +130,8 @@ export default function ClientLayout({ children, user }: PropsWithChildren<Props
                                 My Wallet
                             </Link>
                             <Link
-                                href="#"
-                                className={`flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath === '/client/inquiry' ? 'bg-[#048e86] shadow-md' : ''}`}
+                                href="/dashboard/inquiries"
+                                className={`flex h-full items-center gap-2 rounded-lg px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#048e86] ${currentPath.startsWith('/dashboard/inquiries') ? 'bg-[#048e86] shadow-md' : ''}`}
                             >
                                 <Icon iconNode={HelpCircle} className="h-5 w-5 text-white" />
                                 Free Inquiry

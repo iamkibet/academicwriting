@@ -42,7 +42,7 @@ class Wallet extends Model
     /**
      * Add funds to wallet
      */
-    public function addFunds(float $amount, string $description, ?int $orderId = null): WalletTransaction
+    public function addFunds(float $amount, string $description, ?int $orderId = null, ?string $paymentMethod = null): WalletTransaction
     {
         $this->increment('balance', $amount);
         
@@ -51,6 +51,7 @@ class Wallet extends Model
             'amount' => $amount,
             'description' => $description,
             'order_id' => $orderId,
+            'payment_method' => $paymentMethod ?? 'wallet',
             'status' => 'completed',
         ]);
     }

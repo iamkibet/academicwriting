@@ -23,33 +23,33 @@ interface Order {
 }
 
 interface ClientDashboardPageProps {
-  auth: {
-    user: User;
-  };
-  stats?: {
-    total_orders: number
-    pending_orders: number
-    active_orders: number
-    completed_orders: number
-    cancelled_orders: number
-    total_spent: number
-  }
-  wallet?: {
-    balance: number
-    formatted_balance: string
-    statistics: {
-      current_balance: number
-      total_credits: number
-      total_debits: number
-      total_transactions: number
-      credit_transactions: number
-      debit_transactions: number
+    auth: {
+        user: User;
+    };
+    stats?: {
+        total_orders: number
+        pending_orders: number
+        active_orders: number
+        completed_orders: number
+        cancelled_orders: number
+        total_spent: number
     }
-  }
-  orders?: Order[]
-  recentOrders?: Order[]
-  currentTab?: string
-  errors?: Record<string, string>
+    wallet?: {
+        balance: number
+        formatted_balance: string
+        statistics: {
+            current_balance: number
+            total_credits: number
+            total_debits: number
+            total_transactions: number
+            credit_transactions: number
+            debit_transactions: number
+        }
+    }
+    orders?: Order[]
+    recentOrders?: Order[]
+    currentTab?: string
+    errors?: Record<string, string>
 }
 
 const TABS = [
@@ -69,21 +69,21 @@ function EmptyState({ title, description, icon }: { title: string; description: 
     );
 }
 
-export default function ClientDashboardPage({ 
-  auth,
-  stats, 
-  wallet, 
-  orders,
-  recentOrders, 
-  currentTab = 'recent',
-  errors 
+export default function ClientDashboardPage({
+    auth,
+    stats,
+    wallet,
+    orders,
+    recentOrders,
+    currentTab = 'recent',
+    errors
 }: ClientDashboardPageProps) {
     const { user } = auth;
     const [activeTab, setActiveTab] = useState(currentTab);
-    
+
     // Use orders from backend if available, otherwise fall back to recentOrders
     const allOrders = orders || recentOrders || [];
-    
+
     // Handle tab change with URL update
     const handleTabChange = (tabKey: string) => {
         setActiveTab(tabKey);
@@ -92,7 +92,7 @@ export default function ClientDashboardPage({
             replace: true
         });
     };
-    
+
     // Update active tab when currentTab prop changes
     useEffect(() => {
         setActiveTab(currentTab);
@@ -113,11 +113,10 @@ export default function ClientDashboardPage({
                                             <button
                                                 key={tab.key}
                                                 onClick={() => handleTabChange(tab.key)}
-                                                className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium whitespace-nowrap ${
-                                                    activeTab === tab.key
+                                                className={`flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium whitespace-nowrap ${activeTab === tab.key
                                                         ? 'border-blue-500 text-blue-600'
                                                         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                                                } `}
+                                                    } `}
                                             >
                                                 {tab.icon}
                                                 {tab.label}

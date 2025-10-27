@@ -1,24 +1,21 @@
 import { Head, usePage } from '@inertiajs/react'
 import ClientLayout from '@/components/layouts/ClientLayout'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { router } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SearchDropdown } from '@/components/ui/search-dropdown'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { NumberInput } from '@/components/ui/number-input'
-import { FileUpload } from '@/components/ui/file-upload'
-import { Spinner } from '@/components/ui/spinner'
-import { Badge } from '@/components/ui/badge'
 import { 
   Info, 
-  Shield, 
   Star, 
   Lock,
-  CheckCircle
+  X
 } from 'lucide-react'
 
 // Loading Dots Component
@@ -90,6 +87,7 @@ interface PriceEstimate {
   formatted_total_price: string
   price_breakdown: {
     base_price: number
+    price_per_page: number
     service_increment: number
     language_increment: number
     pages: number
@@ -103,7 +101,7 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
   const [formData, setFormData] = useState<OrderFormData>({
     service_type: 'academic_writing',
     academic_level_id: '5', // Default to High School
-    paper_type: '',
+    paper_type: 'essay', // Default to Essay
     discipline_id: '1', // Default to first service type
     topic: 'Writer\'s choice',
     description: '',
@@ -111,7 +109,7 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
     deadline_type_id: '', // Will be set to 7 Days from admin settings
     deadline_date: '',
     pages: 1,
-    words: 250, // Default for double spacing (1 page = 250 words)
+    words: 275, // Default for double spacing (1 page = 250 words)
     spacing: 'double',
     sources_count: 0,
     charts_count: 0,
@@ -127,6 +125,8 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
   const [recentlyUpdatedFields, setRecentlyUpdatedFields] = useState<Set<string>>(new Set())
   const [isFormReady, setIsFormReady] = useState(false)
   const [isUserSubmitted, setIsUserSubmitted] = useState(false)
+  const [attachments, setAttachments] = useState<Array<{file: File, description: string}>>([])
+  const [isDragOver, setIsDragOver] = useState(false)
 
   // Helper function to convert deadline label to hours for sorting
   const getHoursFromLabel = (label: string): number => {
@@ -259,7 +259,7 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
     if (formData.academic_level_id && formData.discipline_id && formData.deadline_type_id && formData.language_id && formData.pages) {
       fetchPriceEstimate()
     }
-  }, []) // Only run once on mount
+  }, [formData.academic_level_id, formData.discipline_id, formData.deadline_type_id, formData.language_id, formData.pages, formData.additional_features]) // Include additional_features
 
   const fetchPriceEstimate = async () => {
     setIsLoadingEstimate(true)
@@ -267,6 +267,8 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
       // Get the hours for the selected deadline
       const selectedDeadline = deadlineOptions.find(option => option.value === formData.deadline_type_id)
       if (!selectedDeadline) return
+      
+      console.log('Fetching price estimate with additional features:', formData.additional_features)
       
       const response = await fetch(`/api/pricing/estimate?${new URLSearchParams({
         academic_level_id: formData.academic_level_id,
@@ -285,7 +287,10 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
       
       if (response.ok) {
         const data = await response.json()
+        console.log('Price estimate received:', data.data)
         setPriceEstimate(data.data)
+      } else {
+        console.error('Failed to fetch price estimate:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Failed to fetch price estimate:', error)
@@ -336,6 +341,94 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
     }))
   }
 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    const newAttachments = files.map(file => ({ file, description: '' }))
+    setAttachments(prev => [...prev, ...newAttachments])
+  }
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault()
+    setIsDragOver(false)
+    const files = Array.from(event.dataTransfer.files)
+    const newAttachments = files.map(file => ({ file, description: '' }))
+    setAttachments(prev => [...prev, ...newAttachments])
+  }
+
+  const handleFileRemove = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleDescriptionChange = (index: number, description: string) => {
+    setAttachments(prev => prev.map((attachment, i) => 
+      i === index ? { ...attachment, description } : attachment
+    ))
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase()
+    switch (extension) {
+      case 'pdf':
+        return '📄'
+      case 'doc':
+      case 'docx':
+        return '📝'
+      case 'txt':
+        return '📄'
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return '🖼️'
+      case 'zip':
+      case 'rar':
+        return '📦'
+      default:
+        return '📎'
+    }
+  }
+
+  const getFileTypeColor = (fileName: string) => {
+    const extension = fileName.split('.').pop()?.toLowerCase()
+    switch (extension) {
+      case 'pdf':
+        return 'bg-red-100 text-red-800'
+      case 'doc':
+      case 'docx':
+        return 'bg-blue-100 text-blue-800'
+      case 'txt':
+        return 'bg-gray-100 text-gray-800'
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return 'bg-green-100 text-green-800'
+      case 'zip':
+      case 'rar':
+        return 'bg-purple-100 text-purple-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   const handleSubmit = () => {
     setValidationError(null)
     
@@ -362,7 +455,8 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
     // Prepare data for submission with correct field names
     const submitData = {
       ...formData,
-      service_type_id: formData.discipline_id, // Map discipline_id to service_type_id for backend
+      service_type_id: formData.discipline_id, // Use discipline_id as service_type_id for now
+      discipline_id: formData.discipline_id, // Also send discipline_id separately
       deadline_hours: selectedDeadline.value, // Send hours as deadline_hours
       topic: formData.topic || 'Writer\'s choice', // Ensure topic has a default value
       words: calculatedWords, // Use calculated words instead of form value
@@ -371,7 +465,27 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
     console.log('Submitting order with data:', submitData)
     setIsSubmitting(true)
 
-    router.post('/dashboard/orders', submitData, {
+    // Create FormData for file uploads
+    const formDataToSend = new FormData()
+    
+    // Add all form fields
+    Object.entries(submitData).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        formDataToSend.append(key, JSON.stringify(value))
+      } else {
+        formDataToSend.append(key, String(value))
+      }
+    })
+    
+    // Add file attachments
+    if (attachments.length > 0) {
+      attachments.forEach((attachment, index) => {
+        formDataToSend.append('attachments[]', attachment.file)
+        formDataToSend.append('attachment_descriptions[]', attachment.description)
+      })
+    }
+
+    router.post('/dashboard/orders', formDataToSend, {
       onSuccess: () => {
         console.log('Order created successfully')
         setIsSubmitting(false)
@@ -424,29 +538,29 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
       
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-8">
-            <div>
+        {/* Header */}
+        <div className="flex justify-between items-start mb-8">
+          <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-3 tracking-tight">PLACE AN ORDER</h1>
               <p className="text-lg text-gray-600 flex items-center gap-2">
-                It's fast, secure, and confidential
+              It's fast, secure, and confidential
                 <Info className="h-5 w-5 text-gray-400" />
-              </p>
-            </div>
+            </p>
+          </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">Currency:</span>
-              <Select defaultValue="USD">
+          <Select defaultValue="USD">
                 <SelectTrigger className="w-24 h-10 border-gray-300 rounded-md">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">$ USD</SelectItem>
-                  <SelectItem value="EUR">€ EUR</SelectItem>
-                  <SelectItem value="GBP">£ GBP</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USD">$ USD</SelectItem>
+              <SelectItem value="EUR">€ EUR</SelectItem>
+              <SelectItem value="GBP">£ GBP</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        </div>
 
          
 
@@ -459,21 +573,22 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                 <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45"></div>
                 Paper details
               </div>
-              <div className="space-y-8 mt-6">
-                {/* Validation Error */}
-                {validationError && (
+              <div className="space-y-4 mt-6">
+              {/* Validation Error */}
+              {validationError && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-                    {validationError}
-                  </div>
-                )}
+                  {validationError}
+                </div>
+              )}
 
-                {/* Service Type */}
-                <div className="space-y-2">
-                  <SegmentedControl
-                    value={formData.service_type}
-                    onValueChange={(value) => handleInputChange('service_type', value)}
-                    options={serviceTypes}
-                    containerClassName="w-full flex"
+              {/* Service Type */}
+                <div className="flex items-center gap-4">
+                 
+                <SegmentedControl
+                  value={formData.service_type}
+                  onValueChange={(value) => handleInputChange('service_type', value)}
+                  options={serviceTypes}
+                    containerClassName="flex-1 flex"
                     textSize="lg"
                     padding="lg"
                     activeButtonClassName="text-white shadow-sm flex-1 border border-gray-300"
@@ -481,254 +596,378 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                     style={{
                       '--active-bg': 'rgb(17, 24, 39)'
                     } as React.CSSProperties}
-                  />
-                </div>
+                />
+              </div>
 
-                {/* Academic Level */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-lg font-semibold text-gray-900">Academic level</Label>
-                    {loadingFields.has('academic_level_id') && <LoadingDots />}
-                    {recentlyUpdatedFields.has('academic_level_id') && !loadingFields.has('academic_level_id') && (
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    )}
-                  </div>
-                  <SegmentedControl
-                    value={formData.academic_level_id}
-                    onValueChange={(value) => handleInputChange('academic_level_id', value)}
-                    options={academicLevels}
-                    containerClassName="bg-gray-100 p-1 rounded-lg"
-                    textSize="base"
-                    padding="lg"
-                    rounded="lg"
-                    activeButtonClassName="bg-white text-gray-900 shadow-sm"
-                    inactiveButtonClassName="text-gray-600 hover:text-gray-900"
-                  />
-                </div>
-
-                {/* Paper Type and Discipline */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <Label className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      Type of paper
-                      <Info className="h-4 w-4 text-gray-500" />
-                    </Label>
-                    <Select value={formData.paper_type} onValueChange={(value) => handleInputChange('paper_type', value)}>
-                      <SelectTrigger className="h-12 border-gray-300 rounded-md">
-                        <SelectValue placeholder="Select..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="essay">Essay</SelectItem>
-                        <SelectItem value="research_paper">Research Paper</SelectItem>
-                        <SelectItem value="thesis">Thesis</SelectItem>
-                        <SelectItem value="dissertation">Dissertation</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-lg font-semibold text-gray-900">Discipline</Label>
-                      {loadingFields.has('discipline_id') && <LoadingDots />}
-                      {recentlyUpdatedFields.has('discipline_id') && !loadingFields.has('discipline_id') && (
+              {/* Academic Level */}
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0 flex items-center gap-2">
+                    <Label className="text-sm text-gray-500">Academic level</Label>
+                    <div className="w-6 h-4 flex items-center justify-center">
+                      {loadingFields.has('academic_level_id') && <LoadingDots />}
+                      {recentlyUpdatedFields.has('academic_level_id') && !loadingFields.has('academic_level_id') && (
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       )}
                     </div>
-                    <Select value={formData.discipline_id} onValueChange={(value) => handleInputChange('discipline_id', value)}>
-                      <SelectTrigger className="h-12 border-gray-300 rounded-md">
-                        <SelectValue placeholder="Select or type..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pricingOptions?.service_types && Object.entries(pricingOptions.service_types).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            <div className="flex items-center justify-between w-full">
-                              <span>{label}</span>
-                              <span className="text-xs text-gray-500 ml-2">Academic Subject</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
-                </div>
+                <SegmentedControl
+                  value={formData.academic_level_id}
+                  onValueChange={(value) => handleInputChange('academic_level_id', value)}
+                  options={academicLevels}
+                    containerClassName="flex-1 flex"
+                    textSize="sm"
+                    padding="md"
+                    rounded="none"
+                    activeButtonClassName="text-white shadow-sm flex-1 border border-gray-300"
+                    inactiveButtonClassName="text-gray-600 hover:text-gray-900 flex-1 border border-gray-200"
+                    style={{
+                      '--active-bg': 'rgb(17, 24, 39)'
+                    } as React.CSSProperties}
+                />
+              </div>
 
-                {/* Topic */}
+              {/* Paper Type and Discipline */}
                 <div className="space-y-4">
-                  <Label className="text-lg font-semibold text-gray-900">Topic</Label>
-                  <Input
-                    value={formData.topic}
-                    onChange={(e) => handleInputChange('topic', e.target.value)}
-                    placeholder="Writer's choice"
-                    className="h-12 border-gray-300 rounded-md"
-                  />
-                </div>
-
-                {/* Paper Instructions */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold text-gray-900">Paper instructions</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Write what's important for the writer to consider to meet your expectations; Include class notes, textbook pages, and grading scales; Attach tables or charts as files; they can't be pasted here."
-                    rows={6}
-                    className="border-gray-300 rounded-md"
-                  />
-                </div>
-
-                {/* File Upload */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold text-gray-900">Attachments</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <p className="text-sm text-gray-600 mb-2">Make sure files do not contain personal data (names, contacts, etc).</p>
-                    <Button type="button" variant="outline" className="text-blue-600 border-blue-600 hover:bg-blue-50">
-                      Browse
-                    </Button>
-                    <p className="text-sm text-gray-500 mt-2">or Drop files here</p>
-                  </div>
-                </div>
-
-                {/* Paper Format */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold text-gray-900">Paper format</Label>
-                  <SegmentedControl
-                    value={formData.paper_format}
-                    onValueChange={(value) => handleInputChange('paper_format', value)}
-                    options={paperFormats}
-                    containerClassName="bg-gray-100 p-1 rounded-lg"
-                    textSize="base"
-                    padding="lg"
-                    rounded="lg"
-                    activeButtonClassName="bg-white text-gray-900 shadow-sm"
-                    inactiveButtonClassName="text-gray-600 hover:text-gray-900"
-                  />
-                </div>
-
-                {/* Deadline */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-lg font-semibold text-gray-900">Deadline</Label>
-                    {loadingFields.has('deadline_type_id') && <LoadingDots />}
-                    {recentlyUpdatedFields.has('deadline_type_id') && !loadingFields.has('deadline_type_id') && (
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    )}
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <SegmentedControl
-                      value={formData.deadline_type_id}
-                      onValueChange={(value) => handleInputChange('deadline_type_id', value)}
-                      options={deadlineOptions}
+                  <div className="flex items-center gap-4">
+                    <div className="w-32 flex-shrink-0">
+                      <Label className="text-sm text-gray-500 flex items-center gap-2">
+                    Type of paper
+                    <Info className="h-4 w-4 text-gray-500" />
+                  </Label>
+                    </div>
+                    <SearchDropdown
+                      value={formData.paper_type}
+                      onValueChange={(value) => handleInputChange('paper_type', value)}
+                      options={[
+                        { value: 'essay', label: 'Essay' },
+                        { value: 'research_paper', label: 'Research Paper' },
+                        { value: 'thesis', label: 'Thesis' },
+                        { value: 'dissertation', label: 'Dissertation' },
+                      ]}
+                      placeholder="Select..."
+                      className="flex-1"
                     />
-                    {formData.deadline_date && (
+                </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-32 flex-shrink-0 flex items-center gap-2">
+                      <Label className="text-sm text-gray-500">Discipline</Label>
+                      <div className="w-6 h-4 flex items-center justify-center">
+                        {loadingFields.has('discipline_id') && <LoadingDots />}
+                        {recentlyUpdatedFields.has('discipline_id') && !loadingFields.has('discipline_id') && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        )}
+                      </div>
+                    </div>
+                    <SearchDropdown
+                      value={formData.discipline_id}
+                      onValueChange={(value) => handleInputChange('discipline_id', value)}
+                      options={pricingOptions?.service_types ? Object.entries(pricingOptions.service_types).map(([value, label]) => ({
+                        value,
+                        label
+                      })) : []}
+                      placeholder="Select or type..."
+                      className="flex-1"
+                    />
+                </div>
+              </div>
+
+              {/* Topic */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32 flex-shrink-0">
+                    <Label className="text-sm text-gray-500">Topic</Label>
+                  </div>
+                <Input
+                  value={formData.topic}
+                  onChange={(e) => handleInputChange('topic', e.target.value)}
+                  placeholder="Writer's choice"
+                    className="h-12 border border-gray-300 rounded-md bg-white flex-1"
+                />
+              </div>
+
+                {/* Paper Instructions & Attachments Combined */}
+                <div className="flex items-start gap-4">
+                  <div className="w-32 flex-shrink-0">
+                    <Label className="text-sm text-gray-500">Paper instructions</Label>
+                  </div>
+                  <div className="flex-1">
+                    {/* Instructions Textarea */}
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      placeholder="• Write what's important for the writer to consider to meet your expectations;
+• Include class notes, textbook pages, and grading scales;
+• Attach tables or charts as files; they can't be pasted here."
+                      rows={4}
+                      className="border border-gray-300 rounded-md bg-white mb-4"
+                    />
+
+                    {/* File Upload Section */}
+                    <div className="border-t border-gray-200 pt-4">
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-700 mb-2">Make sure files do not contain personal data (names, contacts, etc).</p>
+                      </div>
+
+                      {/* Upload Area */}
+                      <div 
+                        className={`border-2 border-dashed rounded-lg p-4 text-center bg-white transition-colors ${
+                          isDragOver 
+                            ? 'border-blue-400 bg-blue-50' 
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                      >
+                        <input
+                          type="file"
+                          multiple
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          id="file-upload"
+                          accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                        />
+                        <div className="flex items-center justify-center gap-4">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                            onClick={() => document.getElementById('file-upload')?.click()}
+                          >
+                            Browse
+                          </Button>
+                          <span className="text-sm text-gray-500">or</span>
+                          <span className="text-sm text-gray-500">Drop files here</span>
+                        </div>
+                      </div>
+
+                      {/* Selected Files with Descriptions */}
+                      {attachments.length > 0 && (
+                        <div className="mt-4 space-y-3">
+                        
+                          {attachments.map((attachment, index) => (
+                            <div
+                              key={index}
+                              className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+                            >
+                              <div className="flex items-start gap-4">
+                                {/* File Info */}
+                                <div className="flex items-center gap-3 flex-shrink-0">
+                                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getFileTypeColor(attachment.file.name)}`}>
+                                    <span className="text-lg">{getFileIcon(attachment.file.name)}</span>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">{attachment.file.name}</p>
+                                    <p className="text-xs text-gray-500">{formatFileSize(attachment.file.size)}</p>
+                                  </div>
+                                </div>
+
+                                {/* Description Input */}
+                                <div className="flex-1">
+                                  <SearchDropdown
+                                    value={attachment.description}
+                                    onValueChange={(value) => handleDescriptionChange(index, value)}
+                                    options={[
+                                      { value: 'Class notes', label: 'Class notes' },
+                                      { value: 'Textbook pages', label: 'Textbook pages' },
+                                      { value: 'Grading rubric', label: 'Grading rubric' },
+                                      { value: 'Reference material', label: 'Reference material' },
+                                      { value: 'Sample paper', label: 'Sample paper' },
+                                      { value: 'Assignment guidelines', label: 'Assignment guidelines' },
+                                      { value: 'Other', label: 'Other' }
+                                    ]}
+                                    placeholder="Description"
+                                    className="w-full"
+                                  />
+                                </div>
+
+                                {/* Remove Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleFileRemove(index)}
+                                  className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 flex-shrink-0"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+              {/* Paper Format */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32 flex-shrink-0">
+                    <Label className="text-sm text-gray-500">Paper format</Label>
+                  </div>
+                <SegmentedControl
+                  value={formData.paper_format}
+                  onValueChange={(value) => handleInputChange('paper_format', value)}
+                  options={paperFormats}
+                    containerClassName="flex-1 flex"
+                    textSize="sm"
+                    padding="md"
+                    rounded="none"
+                    activeButtonClassName="text-white shadow-sm flex-1 border border-gray-300"
+                    inactiveButtonClassName="text-gray-600 hover:text-gray-900 flex-1 border border-gray-200"
+                    style={{
+                      '--active-bg': 'rgb(17, 24, 39)'
+                    } as React.CSSProperties}
+                />
+              </div>
+
+              {/* Deadline */}
+                <div className="flex items-start gap-4">
+                  <div className="w-32 flex-shrink-0 flex items-center gap-2">
+                    <Label className="text-sm text-gray-500">Deadline</Label>
+                    <div className="w-6 h-4 flex items-center justify-center">
+                      {loadingFields.has('deadline_type_id') && <LoadingDots />}
+                      {recentlyUpdatedFields.has('deadline_type_id') && !loadingFields.has('deadline_type_id') && (
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                <SegmentedControl
+                  value={formData.deadline_type_id}
+                  onValueChange={(value) => handleInputChange('deadline_type_id', value)}
+                  options={deadlineOptions}
+                      containerClassName="w-full flex"
+                      textSize="sm"
+                      padding="md"
+                      rounded="none"
+                      activeButtonClassName="text-white shadow-sm flex-1 border border-gray-300"
+                      inactiveButtonClassName="text-gray-600 hover:text-gray-900 flex-1 border border-gray-200"
+                      style={{
+                        '--active-bg': 'rgb(17, 24, 39)'
+                      } as React.CSSProperties}
+                />
+                {formData.deadline_date && (
                       <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           <span className="text-sm font-medium text-blue-900">Delivery Date</span>
                         </div>
                         <p className="text-sm text-blue-700 mt-1">
-                          We'll send you the order for review by {new Date(formData.deadline_date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })}.
-                        </p>
+                    We'll send you the order for review by {new Date(formData.deadline_date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}.
+                  </p>
                       </div>
-                    )}
+                )}
                   </div>
+              </div>
+
+              {/* Pages and Spacing */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-32 flex-shrink-0 flex items-center gap-2">
+                      <Label className="text-sm text-gray-500">Pages</Label>
+                      <div className="w-6 h-4 flex items-center justify-center">
+                        {loadingFields.has('pages') && <LoadingDots />}
+                        {recentlyUpdatedFields.has('pages') && !loadingFields.has('pages') && (
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                  <NumberInput
+                    value={formData.pages}
+                    onChange={(value) => handleInputChange('pages', value)}
+                    min={1}
+                    max={100}
+                  />
+                      <p className="text-sm text-gray-600 mt-1">{formData.words} words</p>
+                    </div>
                 </div>
 
-                {/* Pages and Spacing */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Label className="text-lg font-semibold text-gray-900">Pages</Label>
-                      {loadingFields.has('pages') && <LoadingDots />}
-                      {recentlyUpdatedFields.has('pages') && !loadingFields.has('pages') && (
+                  <div className="flex items-center gap-4">
+                    <div className="w-32 flex-shrink-0">
+                      <Label className="text-sm text-gray-500">Spacing</Label>
+                    </div>
+                  <SegmentedControl
+                    value={formData.spacing}
+                    onValueChange={(value) => handleInputChange('spacing', value)}
+                    options={spacingOptions}
+                      containerClassName="flex-1 flex"
+                      textSize="sm"
+                      padding="md"
+                      rounded="none"
+                      activeButtonClassName="text-white shadow-sm flex-1 border border-gray-300"
+                      inactiveButtonClassName="text-gray-600 hover:text-gray-900 flex-1 border border-gray-200"
+                      style={{
+                        '--active-bg': 'rgb(17, 24, 39)'
+                      } as React.CSSProperties}
+                  />
+                </div>
+              </div>
+
+              {/* Sources and Charts */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-32 flex-shrink-0">
+                      <Label className="text-sm text-gray-500">Sources</Label>
+                    </div>
+                  <NumberInput
+                    value={formData.sources_count}
+                    onChange={(value) => handleInputChange('sources_count', value)}
+                    min={0}
+                    max={50}
+                      className="flex-1"
+                  />
+                </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="w-32 flex-shrink-0">
+                      <Label className="text-sm text-gray-500">Charts</Label>
+                    </div>
+                  <NumberInput
+                    value={formData.charts_count}
+                    onChange={(value) => handleInputChange('charts_count', value)}
+                    min={0}
+                    max={20}
+                      className="flex-1"
+                  />
+                </div>
+              </div>
+
+              {/* Language */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32 flex-shrink-0 flex items-center gap-2">
+                    <Label className="text-sm text-gray-500">Language</Label>
+                    <div className="w-6 h-4 flex items-center justify-center">
+                      {loadingFields.has('language_id') && <LoadingDots />}
+                      {recentlyUpdatedFields.has('language_id') && !loadingFields.has('language_id') && (
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       )}
-                    </div>
-                    <NumberInput
-                      value={formData.pages}
-                      onChange={(value) => handleInputChange('pages', value)}
-                      min={1}
-                      max={100}
-                    />
-                    <p className="text-sm text-gray-600">{formData.words} words</p>
+              </div>
                   </div>
-
-                  <div className="space-y-4">
-                    <Label className="text-lg font-semibold text-gray-900">Spacing</Label>
-                    <SegmentedControl
-                      value={formData.spacing}
-                      onValueChange={(value) => handleInputChange('spacing', value)}
-                      options={spacingOptions}
-                      containerClassName="bg-gray-100 p-1 rounded-lg"
-                      textSize="base"
-                      padding="lg"
-                      rounded="lg"
-                      activeButtonClassName="bg-white text-gray-900 shadow-sm"
-                      inactiveButtonClassName="text-gray-600 hover:text-gray-900"
-                    />
+                  <SearchDropdown
+                    value={formData.language_id}
+                    onValueChange={(value) => handleInputChange('language_id', value)}
+                    options={pricingOptions?.languages ? Object.entries(pricingOptions.languages).map(([value, label]) => ({
+                      value,
+                      label
+                    })) : []}
+                    placeholder="Select language"
+                    className="flex-1"
+                  />
                   </div>
-                </div>
-
-                {/* Sources and Charts */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <Label className="text-lg font-semibold text-gray-900">Sources to be cited</Label>
-                    <NumberInput
-                      value={formData.sources_count}
-                      onChange={(value) => handleInputChange('sources_count', value)}
-                      min={0}
-                      max={50}
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label className="text-lg font-semibold text-gray-900">Charts</Label>
-                    <NumberInput
-                      value={formData.charts_count}
-                      onChange={(value) => handleInputChange('charts_count', value)}
-                      min={0}
-                      max={20}
-                    />
-                  </div>
-                </div>
-
-                {/* Language */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-lg font-semibold text-gray-900">Language</Label>
-                    {loadingFields.has('language_id') && <LoadingDots />}
-                    {recentlyUpdatedFields.has('language_id') && !loadingFields.has('language_id') && (
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    )}
-                  </div>
-                  <Select value={formData.language_id} onValueChange={(value) => handleInputChange('language_id', value)}>
-                    <SelectTrigger className="h-12 border-gray-300 rounded-md">
-                      <SelectValue placeholder="Select language" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pricingOptions?.languages && Object.entries(pricingOptions.languages).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{label}</span>
-                            <span className="text-xs text-gray-500 ml-2">
-                              {label === 'English' ? 'No extra charge' : '+10%'}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
 
                 {/* Additional Features */}
-                <div className="space-y-4">
-                  <Label className="text-lg font-semibold text-gray-900">Additional Features (Optional)</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-32 flex-shrink-0">
+                    <Label className="text-sm text-gray-500">Additional Features (Optional)</Label>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
                     {pricingOptions?.additional_features && Object.entries(pricingOptions.additional_features).map(([id, feature]) => (
                       <div key={id} className="flex items-center space-x-3">
                         <input 
@@ -740,8 +979,8 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                         />
                         <label htmlFor={`feature_${id}`} className="text-sm font-medium text-gray-700">
                           {feature.name} ({feature.price_display})
-                        </label>
-                      </div>
+                    </label>
+                  </div>
                     ))}
                   </div>
                 </div>
@@ -772,14 +1011,14 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                   {formData.discipline_id && pricingOptions?.service_types && (
                     <div className="text-sm text-gray-700">
                       {pricingOptions.service_types[formData.discipline_id]}
-                    </div>
+                  </div>
                   )}
                   
                   {/* Language - Only show if not English (since English has no extra charge) */}
                   {formData.language_id && pricingOptions?.languages && pricingOptions.languages[formData.language_id] !== 'English' && (
                     <div className="text-sm text-gray-700">
                       {pricingOptions.languages[formData.language_id]}
-                    </div>
+                  </div>
                   )}
                   
                   
@@ -824,8 +1063,8 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                       })}
                     </>
                   )}
-                  
-                  {/* Total Price */}
+
+                {/* Total Price */}
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-base font-semibold text-gray-900">Total price</span>
                     <div className="flex items-center gap-2">
@@ -836,8 +1075,8 @@ export default function CreateOrderPage({ pricingOptions }: CreateOrderPageProps
                         </div>
                       ) : (
                         <span className="text-xl font-bold text-green-600">
-                          {priceEstimate?.formatted_total_price || '$0.00'}
-                        </span>
+                      {priceEstimate?.formatted_total_price || '$0.00'}
+                    </span>
                       )}
                     </div>
                   </div>

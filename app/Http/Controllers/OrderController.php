@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreWebOrderRequest;
 use App\Models\Order;
+use App\Models\OrderFile;
 use App\Models\AdditionalFeature;
+use App\Enums\OrderStatus;
 use App\Services\OrderService;
 use App\Services\PricingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
-use Inertia\Response;
+use Inertia\Response as InertiaResponse;
 use Inertia\ResponseFactory;
 
 class OrderController extends Controller
@@ -23,7 +27,7 @@ class OrderController extends Controller
     /**
      * Display the order placement form
      */
-    public function create(): Response
+    public function create(): InertiaResponse
     {
         $pricingOptions = [
             'academic_levels' => $this->pricingService->getAcademicLevels(),
@@ -55,9 +59,8 @@ class OrderController extends Controller
 
         // Redirect to dashboard with appropriate tab based on order status
         $tab = match($order->status) {
-            'placed' => 'active',
-            'active', 'assigned', 'in_progress', 'submitted', 'waiting_for_review', 'in_revision' => 'active',
-            'completed' => 'completed',
+            'waiting_for_payment' => 'recent',
+            'writer_pending', 'in_progress', 'review', 'approval', 'in_revision' => 'active',
             'cancelled' => 'cancelled',
             default => 'recent'
         };
@@ -68,7 +71,7 @@ class OrderController extends Controller
     /**
      * Display the specified order
      */
-    public function show(Order $order, Request $request): Response
+    public function show(Order $order, Request $request): InertiaResponse
     {
         $user = $request->user();
 
@@ -77,7 +80,7 @@ class OrderController extends Controller
             abort(403, 'Unauthorized to view this order');
         }
 
-        $order->load(['client', 'writer', 'payments', 'files', 'messages', 'revisions', 'statusHistory']);
+        $order->load(['client', 'writer', 'payments', 'files', 'messages', 'revisions', 'statusHistory', 'academicLevel', 'serviceType', 'discipline', 'language']);
 
         return Inertia::render('orders/show', [
             'order' => $order,
@@ -87,7 +90,7 @@ class OrderController extends Controller
     /**
      * Display a listing of the user's orders
      */
-    public function index(Request $request): Response
+    public function index(Request $request): InertiaResponse
     {
         $user = $request->user();
         $status = $request->query('status');
@@ -147,9 +150,9 @@ class OrderController extends Controller
             ]);
         }
 
-        if ($order->status !== Order::STATUS_PLACED) {
+        if ($order->status !== OrderStatus::WAITING_FOR_PAYMENT) {
             return redirect()->back()->withErrors([
-                'general' => 'Order is not in placed status',
+                'general' => 'Order is not in waiting for payment status',
             ]);
         }
 
@@ -177,7 +180,7 @@ class OrderController extends Controller
         }
 
         // Check if order can be cancelled
-        if (in_array($order->status, [Order::STATUS_COMPLETED, Order::STATUS_CANCELLED])) {
+        if (in_array($order->status, [OrderStatus::APPROVAL, OrderStatus::CANCELLED])) {
             return redirect()->back()->withErrors([
                 'general' => 'Order cannot be cancelled',
             ]);
@@ -192,6 +195,101 @@ class OrderController extends Controller
         // Redirect to dashboard with cancelled tab
         return Inertia::location(route('dashboard.orders', ['tab' => 'cancelled']))
             ->with('success', 'Order cancelled successfully');
+    }
+
+    /**
+     * Download order file
+     */
+    public function downloadFile(Order $order, OrderFile $file, Request $request)
+    {
+        $user = $request->user();
+
+        // Check if user can download this file
+        if (!$user->isAdmin() && $order->client_id !== $user->id) {
+            abort(403, 'Unauthorized to download this file');
+        }
+
+        // Check if file exists
+        if (!Storage::disk('private')->exists($file->file_path)) {
+            abort(404, 'File not found');
+        }
+
+        return Storage::disk('private')->download($file->file_path, $file->file_name);
+    }
+
+    /**
+     * Add services to an order
+     */
+    public function addServices(Order $order, Request $request)
+    {
+        $user = $request->user();
+
+        // Check if user can modify this order
+        if (!$user->isAdmin() && $order->client_id !== $user->id) {
+            abort(403, 'Unauthorized to modify this order');
+        }
+
+        $request->validate([
+            'services' => 'required|array|min:1',
+            'services.*.service_key' => 'required|string',
+            'services.*.name' => 'required|string',
+            'services.*.price' => 'required|numeric|min:0',
+            'services.*.quantity' => 'required|integer|min:1',
+            'services.*.total_price' => 'required|numeric|min:0',
+        ]);
+
+        $services = $request->input('services');
+        
+        // Calculate additional pages and their cost using the exact same pricing logic
+        $additionalPages = 0;
+        $totalAdditionalCost = 0;
+        
+        foreach ($services as $service) {
+            if ($service['service_key'] === 'additional_pages') {
+                $additionalPages += $service['quantity'];
+                // Use the exact base price per page for additional pages
+                $pricingService = app(PricingService::class);
+                $basePricePerPage = $pricingService->getBasePricePerPageForOrder($order);
+                $serviceCost = $basePricePerPage * $service['quantity'];
+                $totalAdditionalCost += $serviceCost;
+                
+                // Log for debugging
+                \Log::info('Adding additional pages to order ' . $order->id, [
+                    'quantity' => $service['quantity'],
+                    'base_price_per_page' => $basePricePerPage,
+                    'service_cost' => $serviceCost,
+                    'total_additional_cost' => $totalAdditionalCost
+                ]);
+            } else {
+                // For other services, use the provided price
+                $totalAdditionalCost += $service['total_price'];
+            }
+        }
+
+        // Update order price and pages
+        $updateData = [
+            'price' => $order->price + $totalAdditionalCost
+        ];
+        
+        if ($additionalPages > 0) {
+            $updateData['pages'] = $order->pages + $additionalPages;
+        }
+        
+        $order->update($updateData);
+
+        // Store services in order notes or create a separate table
+        $existingNotes = $order->client_notes ?? '';
+        $servicesText = "\n\nAdditional Services Added:\n";
+        foreach ($services as $service) {
+            $servicesText .= "- {$service['name']} (Qty: {$service['quantity']}) - $" . number_format($service['total_price'], 2) . "\n";
+        }
+        $servicesText .= "Total Additional Cost: $" . number_format($totalAdditionalCost, 2);
+
+        $order->update([
+            'client_notes' => $existingNotes . $servicesText
+        ]);
+
+        return redirect()->back()->with('success', 'Services added to order successfully!');
     }
 
     /**
@@ -219,5 +317,25 @@ class OrderController extends Controller
                 ];
             })
             ->toArray();
+    }
+
+    /**
+     * Get base price per page for an order
+     */
+    public function getBasePricePerPage(Order $order, Request $request)
+    {
+        $user = $request->user();
+
+        // Check if user can view this order
+        if (!$user->isAdmin() && $order->client_id !== $user->id) {
+            abort(403, 'Unauthorized to view this order');
+        }
+
+        $pricingService = app(PricingService::class);
+        $basePricePerPage = $pricingService->getBasePricePerPageForOrder($order);
+
+        return response()->json([
+            'base_price_per_page' => $basePricePerPage
+        ]);
     }
 }

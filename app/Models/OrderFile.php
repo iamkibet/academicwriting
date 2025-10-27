@@ -10,6 +10,8 @@ class OrderFile extends Model
 {
     use HasFactory;
 
+    protected $table = 'order_files';
+
     protected $fillable = [
         'order_id',
         'file_name',
@@ -39,7 +41,7 @@ class OrderFile extends Model
      */
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id');
     }
 
     /**

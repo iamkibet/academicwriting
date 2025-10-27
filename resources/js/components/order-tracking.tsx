@@ -33,6 +33,17 @@ interface Order {
     name: string
     email: string
   }
+  files?: Array<{
+    id: number
+    file_name: string
+    file_path: string
+    file_type: string
+    file_size: number
+    file_category: string
+    uploaded_by_user_id: number
+    created_at: string
+    formatted_file_size: string
+  }>
   payments?: Array<{
     id: number
     amount: number
@@ -239,7 +250,7 @@ export function OrderTracking({ orderId, showAllOrders = false }: OrderTrackingP
                 <div>
                   <CardTitle className="text-lg">{order.title}</CardTitle>
                   <CardDescription>
-                    Order #{order.id} • Placed {formatDate(order.created_at)}
+                    Order #{String(order.id).padStart(4, '0')} • Placed {formatDate(order.created_at)}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -330,6 +341,45 @@ export function OrderTracking({ orderId, showAllOrders = false }: OrderTrackingP
                         <span className="font-semibold">${payment.amount.toFixed(2)}</span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Attached Files */}
+              {order.files && order.files.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Attached Files</h4>
+                  <div className="space-y-2">
+                    {order.files
+                      .filter(file => file.file_category === 'requirements')
+                      .map((file) => (
+                        <div key={file.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <span className="text-sm">📎</span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{file.file_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {file.formatted_file_size} • {formatDate(file.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Create download link
+                              const link = document.createElement('a')
+                              link.href = `/api/orders/${order.id}/files/${file.id}/download`
+                              link.download = file.file_name
+                              link.click()
+                            }}
+                          >
+                            Download
+                          </Button>
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}

@@ -293,7 +293,7 @@ export function ClientOrderManagement({ initialOrders, filter = 'all' }: ClientO
                     <div>
                       <CardTitle className="text-lg">{order.title}</CardTitle>
                       <CardDescription>
-                        Order #{order.id} • Placed {formatDate(order.created_at)}
+                        Order #{String(order.id).padStart(4, '0')} • Placed {formatDate(order.created_at)}
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-2">

@@ -135,6 +135,58 @@ class User extends Authenticatable
     }
 
     /**
+     * Get user's inquiries
+     */
+    public function inquiries()
+    {
+        return $this->hasMany(Inquiry::class, 'client_id');
+    }
+
+    /**
+     * Get user's reward account
+     */
+    public function reward()
+    {
+        return $this->hasOne(Reward::class);
+    }
+
+    /**
+     * Get user's coupon usages
+     */
+    public function couponUsages()
+    {
+        return $this->hasMany(CouponUsage::class);
+    }
+
+    /**
+     * Get total spending for loyalty tiers
+     */
+    public function getTotalSpending(): float
+    {
+        return $this->clientOrders()
+            ->where('status', \App\Enums\OrderStatus::APPROVAL->value)
+            ->sum('price');
+    }
+
+    /**
+     * Get loyalty discount percentage based on spending
+     */
+    public function getLoyaltyDiscount(): int
+    {
+        $totalSpending = $this->getTotalSpending();
+
+        if ($totalSpending >= 2000) {
+            return 15;
+        } elseif ($totalSpending >= 1000) {
+            return 10;
+        } elseif ($totalSpending >= 500) {
+            return 5;
+        }
+
+        return 0;
+    }
+
+    /**
      * Get or create user's wallet
      */
     public function getOrCreateWallet(): Wallet
@@ -145,5 +197,22 @@ class User extends Authenticatable
         }
         
         return $this->wallet;
+    }
+
+    /**
+     * Get or create user's reward account
+     */
+    public function getOrCreateReward(): Reward
+    {
+        if (!$this->reward) {
+            $this->reward()->create([
+                'points' => 0,
+                'total_points_earned' => 0,
+                'total_points_redeemed' => 0,
+            ]);
+            $this->load('reward');
+        }
+        
+        return $this->reward;
     }
 }

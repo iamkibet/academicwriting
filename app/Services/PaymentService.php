@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Enums\OrderStatus;
 use Illuminate\Support\Facades\DB;
 
 class PaymentService
@@ -68,7 +69,7 @@ class PaymentService
             $payment->update(['status' => Payment::STATUS_COMPLETED]);
 
             // Update order status to active
-            $order->update(['status' => Order::STATUS_ACTIVE]);
+            $order->update(['status' => OrderStatus::WRITER_PENDING]);
 
             return [
                 'success' => true,
@@ -99,7 +100,7 @@ class PaymentService
             $payment->update(['status' => Payment::STATUS_COMPLETED]);
 
             // Update order status to active
-            $order->update(['status' => Order::STATUS_ACTIVE]);
+            $order->update(['status' => OrderStatus::WRITER_PENDING]);
 
             return [
                 'success' => true,
@@ -158,7 +159,7 @@ class PaymentService
             $payment->update(['status' => Payment::STATUS_COMPLETED]);
 
             // Update order status to active
-            $order->update(['status' => Order::STATUS_ACTIVE]);
+            $order->update(['status' => OrderStatus::WRITER_PENDING]);
 
             return [
                 'success' => true,

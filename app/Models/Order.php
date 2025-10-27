@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\OrderStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
@@ -15,6 +17,8 @@ class Order extends Model
         'title',
         'description',
         'academic_level_id',
+        'paper_type',
+        'discipline_id',
         'service_type_id',
         'deadline_hours',
         'language_id',
@@ -22,6 +26,8 @@ class Order extends Model
         'pages',
         'words',
         'spacing',
+        'paper_format',
+        'number_of_sources',
         'price',
         'additional_features',
         'status',
@@ -42,19 +48,16 @@ class Order extends Model
             'pages' => 'integer',
             'words' => 'integer',
             'additional_features' => 'array',
+            'status' => OrderStatus::class,
         ];
     }
 
-    // Order statuses
-    const STATUS_PLACED = 'placed';
-    const STATUS_ACTIVE = 'active';
-    const STATUS_ASSIGNED = 'assigned';
+    // Order statuses - using enum
+    const STATUS_WAITING_FOR_PAYMENT = 'waiting_for_payment';
+    const STATUS_WRITER_PENDING = 'writer_pending';
     const STATUS_IN_PROGRESS = 'in_progress';
-    const STATUS_SUBMITTED = 'submitted';
-    const STATUS_WAITING_FOR_REVIEW = 'waiting_for_review';
-    const STATUS_COMPLETED = 'completed';
-    const STATUS_CANCELLED = 'cancelled';
-    const STATUS_IN_REVISION = 'in_revision';
+    const STATUS_REVIEW = 'review';
+    const STATUS_APPROVAL = 'approval';
 
     // Academic levels
     const LEVEL_HIGH_SCHOOL = 'high_school';
@@ -105,6 +108,11 @@ class Order extends Model
         return $this->belongsTo(Subject::class, 'service_type_id');
     }
 
+    public function discipline(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class, 'discipline_id');
+    }
+
     /**
      * Get the deadline type (order rate)
      */
@@ -126,8 +134,9 @@ class Order extends Model
      */
     public function files(): HasMany
     {
-        return $this->hasMany(OrderFile::class);
+        return $this->hasMany(OrderFile::class, 'order_id');
     }
+
 
     /**
      * Get the order messages
@@ -162,18 +171,19 @@ class Order extends Model
     }
 
     /**
+     * Get the inquiry this order was converted from
+     */
+    public function convertedFromInquiry(): HasOne
+    {
+        return $this->hasOne(Inquiry::class, 'converted_to_order_id');
+    }
+
+    /**
      * Check if order is active
      */
     public function isActive(): bool
     {
-        return in_array($this->status, [
-            self::STATUS_ACTIVE,
-            self::STATUS_ASSIGNED,
-            self::STATUS_IN_PROGRESS,
-            self::STATUS_SUBMITTED,
-            self::STATUS_WAITING_FOR_REVIEW,
-            self::STATUS_IN_REVISION,
-        ]);
+        return $this->status->isActive();
     }
 
     /**
@@ -181,15 +191,23 @@ class Order extends Model
      */
     public function isCompleted(): bool
     {
-        return $this->status === self::STATUS_COMPLETED;
+        return $this->status->isCompleted();
     }
 
     /**
-     * Check if order is cancelled
+     * Check if order requires payment
      */
-    public function isCancelled(): bool
+    public function requiresPayment(): bool
     {
-        return $this->status === self::STATUS_CANCELLED;
+        return $this->status->requiresPayment();
+    }
+
+    /**
+     * Get the current progress stage (0-4)
+     */
+    public function getProgressStage(): int
+    {
+        return $this->status->getProgressStage();
     }
 
     /**
@@ -197,17 +215,42 @@ class Order extends Model
      */
     public static function getAvailableStatuses(): array
     {
-        return [
-            self::STATUS_PLACED,
-            self::STATUS_ACTIVE,
-            self::STATUS_ASSIGNED,
-            self::STATUS_IN_PROGRESS,
-            self::STATUS_SUBMITTED,
-            self::STATUS_WAITING_FOR_REVIEW,
-            self::STATUS_COMPLETED,
-            self::STATUS_CANCELLED,
-            self::STATUS_IN_REVISION,
-        ];
+        return OrderStatus::values();
+    }
+
+    /**
+     * Get status options for forms
+     */
+    public static function getStatusOptions(): array
+    {
+        return OrderStatus::options();
+    }
+
+    /**
+     * Update order status with validation and history tracking
+     */
+    public function updateStatus(OrderStatus $newStatus, ?User $changedBy = null, ?string $notes = null): bool
+    {
+        if (!$this->status->canTransitionTo($newStatus)) {
+            throw new \InvalidArgumentException(
+                "Cannot transition from {$this->status->value} to {$newStatus->value}"
+            );
+        }
+
+        $previousStatus = $this->status;
+        $this->status = $newStatus;
+        $this->save();
+
+        // Create status history entry
+        OrderStatusHistory::createEntry(
+            $this->id,
+            $newStatus->value,
+            $previousStatus->value,
+            $changedBy?->id,
+            $notes
+        );
+
+        return true;
     }
 
     /**
